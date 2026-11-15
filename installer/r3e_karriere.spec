@@ -14,7 +14,7 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-pyz = PYZ(a.pure, a.zipped_data, cipher)
+pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
