@@ -38,6 +38,11 @@ Vertragsangeboten, XP-Level und Erfolgen.
   Meisterschaft zugeordnet sind, zählen als Testrennen. Ein
   Durchschnittsplatz von 3 oder besser erzeugt ein zusätzliches
   Angebot dieser Klasse.
+- **Karriere-Startdatum:** Unter *Werkzeuge →
+  Karriere-Startdatum festlegen ...* laesst sich ein Datum (JJJJ-MM-TT)
+  hinterlegen; ab dann zaehlen nur noch Rennen ab diesem Tag fuer
+  Zuordnung zu Meisterschaften und Testrennen-Statistik (leer = alle
+  Rennen).
 - **Klassen-Hierarchie:** Vordefinierte R3E-Stufenleiter (Stufe 1 = DTC
   bis Stufe 6 = LMP1), frei editierbar unter *Werkzeuge →
   Klassen-Stufen bearbeiten ...*; unbekannte Klassen fallen auf
@@ -82,7 +87,7 @@ hervorgehoben.
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 33 Unit-Tests
+python -m unittest discover -s tests   # 36 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 

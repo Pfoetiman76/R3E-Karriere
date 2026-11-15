@@ -35,6 +35,17 @@ class AppSettingsTest(unittest.TestCase):
         s = appsettings.load_settings(self.path)
         self.assertEqual(s["driver_name"], "")
 
+    def test_career_start_roundtrip_and_validation(self):
+        with open(self.path, "w", encoding="utf-8") as f:
+            f.write('{"career_start": "2026-11-01"}')
+        s = appsettings.load_settings(self.path)
+        self.assertEqual(s["career_start"], "2026-11-01")
+        # Ungueltiges Datum wird geleert
+        with open(self.path, "w", encoding="utf-8") as f:
+            f.write('{"career_start": "morgen"}')
+        s = appsettings.load_settings(self.path)
+        self.assertEqual(s["career_start"], "")
+
     def test_unknown_keys_ignored_and_strip(self):
         with open(self.path, "w", encoding="utf-8") as f:
             f.write('{"driver_name": "  Marcel  ", "other": 1}')

@@ -48,6 +48,9 @@ class MainWindow(QMainWindow):
         act_tiers = QAction("&Klassen-Stufen bearbeiten ...", self)
         act_tiers.triggered.connect(self.edit_class_tiers)
         m.addAction(act_tiers)
+        act_start = QAction("&Karriere-Startdatum festlegen ...", self)
+        act_start.triggered.connect(self.set_career_start)
+        m.addAction(act_start)
         m.addSeparator()
         act_reload = QAction("&Aktualisieren", self)
         act_reload.setShortcut("F5")
@@ -250,6 +253,28 @@ class MainWindow(QMainWindow):
         careerstate.save_state(self._state_path, self.state)
         self.reload()
 
+    def set_career_start(self):
+        """Ab diesem Datum (YYYY-MM-DD) zaehlen Rennen im Karriere-Modus."""
+        current = self.settings.get("career_start") or ""
+        text, ok = QInputDialog.getText(
+            self, "Karriere-Startdatum",
+            "Nur Rennen ab diesem Datum zaehlen (YYYY-MM-DD,"
+            " leer = alle Rennen):", text=current)
+        if not ok:
+            return
+        value = text.strip()
+        if value and not appsettings._clean_career_start(value):
+            QMessageBox.warning(
+                self, "Karriere-Startdatum",
+                "Bitte ein Datum im Format JJJJ-MM-TT angeben"
+                " oder das Feld leer lassen.")
+            return
+        self.settings["career_start"] = \
+            appsettings._clean_career_start(value)
+        appsettings.save_settings(
+            appsettings.settings_path(self.app_dir), self.settings)
+        self.reload()
+
     def edit_class_tiers(self):
         """Einfacher Dialog: Klasse -> Stufe (1 = langsamste, 6 = schnellste)."""
         merged = careerstate.merged_tiers(self.settings.get("class_tiers"))
@@ -303,10 +328,17 @@ class MainWindow(QMainWindow):
         self.lbl_contract.setText(
             "Kontrakt: %s%s" % (team or "-",
                                 (" - " + cls) if cls else ""))
-        self.lbl_tier.setText(
-            "Klassen-Stufe: %d" % careerstate.tier_of(
-                cls, self.settings.get("class_tiers")) if cls
-            else "Noch kein Kontrakt - bitte eine Meisterschaft anlegen")
+        start = self.settings.get("career_start") or ""
+        start_info = (" | Rennen ab %s" % start) if start else ""
+        if cls:
+            self.lbl_tier.setText(
+                "Klassen-Stufe: %d%s" % (
+                    careerstate.tier_of(cls, self.settings.get("class_tiers")),
+                    start_info))
+        else:
+            self.lbl_tier.setText(
+                "Noch kein Kontrakt - bitte eine Meisterschaft"
+                " anlegen%s" % start_info)
 
         champ = careerstate.active_championship(state)
         if champ:
@@ -344,7 +376,9 @@ class MainWindow(QMainWindow):
                 t.setItem(i, c, item)
 
         if self.career is not None:
-            reports = careerstate.test_reports(state, self.career.races())
+            career_races = careerstate.filter_races_from(
+                self.career.races(), self.settings.get("career_start"))
+            reports = careerstate.test_reports(state, career_races)
         else:
             reports = {}
         t2 = self.tbl_tests
@@ -414,10 +448,12 @@ class MainWindow(QMainWindow):
             self.lbl_champ.setText("")
             self.statusBar().showMessage("Keine Ergebnis-Datenbank gefunden")
             return
-        # Karriere-Modus: Rennen zuordnen, Abschluss pruefen, speichern
+        # Karriere-Modus: nur Rennen ab dem Startdatum zaehlen
+        career_races = careerstate.filter_races_from(
+            career.races(), self.settings.get("career_start"))
         try:
             added, finished = careerstate.refresh(
-                self.state, career.races(), career.standings_for)
+                self.state, career_races, career.standings_for)
             careerstate.save_state(self._state_path, self.state)
             if finished is not None:
                 QMessageBox.information(

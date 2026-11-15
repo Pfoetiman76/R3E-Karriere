@@ -100,6 +100,30 @@ def strength_label(strength):
             3: "Spitzenteam", 4: "Topteam"}.get(int(strength), "Team")
 
 
+def filter_races_from(races, start_date):
+    """Laesst nur Rennen ab einem Datum (YYYY-MM-DD) zaehlen.
+
+    Ein leeres oder ungueltiges Datum deaktiviert den Filter (alles
+    zaehlt). Zeitstempel werden lexikographisch verglichen, daher
+    funktionieren ISO-aehnliche Formate ('YYYY-MM-DD ...').
+    Rennen ohne Zeitstempel werden zur Sicherheit behalten.
+    """
+    start = (start_date or "").strip()
+    if not start:
+        return list(races)
+    try:
+        year, month, day = (int(x) for x in start.split("-"))
+        assert 1 <= month <= 12 and 1 <= day <= 31
+    except (ValueError, AssertionError):
+        return list(races)   # ungueltiges Datum => Filter aus
+    out = []
+    for r in races:
+        ts = getattr(r, "timestamp", "") or ""
+        if not ts or ts >= start:
+            out.append(r)
+    return out
+
+
 # -------------------------------------------------------------- Zustand --
 
 def new_state():

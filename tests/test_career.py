@@ -12,7 +12,7 @@ from karriere.careerstate import (
     CareerModeError, accept_offer, active_championship, decline_offer,
     load_state, new_state, save_state, start_championship, tier_of,
     classes_of_tier, team_for_tier, test_reports, refresh,
-    finish_championship, open_offers, STATE_VERSION)
+    finish_championship, open_offers, filter_races_from, STATE_VERSION)
 
 
 class FakeRace:
@@ -183,6 +183,38 @@ class CareerStateTest(unittest.TestCase):
                          offers[1:])
         with self.assertRaises(CareerModeError):
             decline_offer(self.state, 99999)
+
+    # ------------------------------------------------- Startdatum-Filter --
+
+    def test_filter_races_from(self):
+        r_old = FakeRace(1, "GT3")
+        r_old.timestamp = "2025-11-01 15:30:00"
+        r_new = FakeRace(2, "GT3")
+        r_new.timestamp = "2026-11-01 15:30:00"
+        r_notime = FakeRace(3, "GT3")
+        races = [r_old, r_new, r_notime]
+        # Kein Datum: alles zaehlt
+        self.assertEqual(filter_races_from(races, ""), races)
+        self.assertEqual(filter_races_from(races, None), races)
+        # Ab 2026: nur das neue Rennen (und Rennen ohne Zeitstempel)
+        out = filter_races_from(races, "2026-01-01")
+        self.assertEqual([r.session_id for r in out], [2, 3])
+        # Ungueltige Eingaben deaktivieren den Filter nicht gefaehrlich
+        self.assertEqual(filter_races_from(races, "kein-datum"), races)
+        # Grenztag inklusive
+        out = filter_races_from(races, "2025-11-01")
+        self.assertIn(1, [r.session_id for r in out])
+
+    def test_filter_blocks_assignment_before_start_date(self):
+        start_championship(self.state, "S", "GT3", 2)
+        r_old = FakeRace(1, "GT3", points=26, position=1)
+        r_old.timestamp = "2020-01-01 10:00:00"
+        r_new = FakeRace(2, "GT3", points=26, position=1)
+        r_new.timestamp = "2026-01-02 10:00:00"
+        added, finished = refresh(
+            self.state, filter_races_from([r_old, r_new], "2026-01-01"))
+        self.assertEqual(added, 1)
+        self.assertIsNone(finished)   # nur 1 von 2 geplanten Rennen
 
     def test_second_championship_after_acceptance(self):
         champ = start_championship(self.state, "S1", "GT3", 1)

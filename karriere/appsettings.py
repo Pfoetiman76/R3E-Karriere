@@ -8,7 +8,20 @@ import json
 import os
 
 SETTINGS_FILENAME = "settings.json"
-DEFAULTS = {"driver_name": "", "results_db": "", "class_tiers": {}}
+DEFAULTS = {"driver_name": "", "results_db": "", "class_tiers": {},
+             "career_start": ""}
+
+
+def _clean_career_start(value):
+    """Karriere-Startdatum als YYYY-MM-DD; ungueltig => leer."""
+    v = str(value or "").strip()
+    try:
+        year, month, day = (int(x) for x in v.split("-"))
+        if not (1 <= month <= 12 and 1 <= day <= 31):
+            raise ValueError
+        return "%04d-%02d-%02d" % (year, month, day)
+    except (ValueError, AttributeError):
+        return ""
 
 
 def _clean_class_tiers(value):
@@ -43,6 +56,7 @@ def load_settings(path):
     s["driver_name"] = str(s["driver_name"] or "").strip()
     s["results_db"] = str(s["results_db"] or "").strip()
     s["class_tiers"] = _clean_class_tiers(s["class_tiers"])
+    s["career_start"] = _clean_career_start(s["career_start"])
     return s
 
 
@@ -52,6 +66,7 @@ def save_settings(path, settings):
     clean["driver_name"] = str(clean["driver_name"] or "").strip()
     clean["results_db"] = str(clean["results_db"] or "").strip()
     clean["class_tiers"] = _clean_class_tiers(clean["class_tiers"])
+    clean["career_start"] = _clean_career_start(clean["career_start"])
     os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
