@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem, QProgressBar, QFileDialog,
     QMessageBox, QInputDialog, QPushButton, QDialog, QComboBox, QSpinBox,
     QFormLayout, QDialogButtonBox, QLineEdit)
-from PySide6.QtGui import QAction, QColor, QDesktopServices, QFont
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QFont, QIcon
 from PySide6.QtCore import Qt, QTimer, QUrl
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -802,6 +802,10 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     theme.apply_dark_theme(app)
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "icon.ico")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
     win = MainWindow()
     win.show()
     sys.exit(app.exec())

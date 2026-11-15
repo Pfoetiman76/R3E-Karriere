@@ -13,6 +13,7 @@
 AppName={#AppName}
 AppVersion={#AppVer}
 AppPublisher=Pfoetiman76
+SetupIconFile={#SourcePath}\..\assets\icon.ico
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 UninstallDisplayName={#AppName} {#AppVer}

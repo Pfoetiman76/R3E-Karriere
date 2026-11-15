@@ -76,6 +76,11 @@ schnellste Rennrunde unter den Top 10. Die Punktetabelle umfasst das
 komplette Fahrerfeld (inklusive KI-Gegner); der eigene Fahrer ist farbig
 hervorgehoben.
 
+- **App-Icon:** Eigenes Icon (dunkles Karriere-Quadrat, diagonales
+  RaceRoom-rotes Band, weisses K; erzeugt mit `python tools/gen_icon.py`).
+  PyInstaller bettet es in die EXE und das Fenster ein, Inno Setup in den
+  Installer.
+
 ## Entwicklung und Erfolge
 
 - XP pro Rennen: Ziel 10, Podium +15, Sieg +25, Pole +10, schnellste
