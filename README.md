@@ -112,7 +112,7 @@ hervorgehoben.
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 43 Unit-Tests
+python -m unittest discover -s tests   # 44 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 

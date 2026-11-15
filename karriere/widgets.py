@@ -165,7 +165,6 @@ def _fmt(v):
     return str(int(v) if float(v).is_integer() else round(v, 1))
 
 
-section_label = _section_label
 
 
 class HubHeader(QWidget):
@@ -196,7 +195,7 @@ class HubHeader(QWidget):
         self.lbl_sub.setText(sub)
 
 
-def _section_label(text):
+def section_label(text):
     """Kapitel-Überschrift mit rotem Akzent-Balken darunter."""
     box = QWidget()
     v = QVBoxLayout(box)
