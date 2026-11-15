@@ -1,6 +1,6 @@
 """R3E Karriere - Modelle und Konstanten (Qt-frei)."""
 APP_NAME = "R3E Karriere"
-APP_VERSION = "0.7.0"
+APP_VERSION = "0.8.0"
 
 
 def format_time_ms(ms) -> str:

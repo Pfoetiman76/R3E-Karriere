@@ -10,6 +10,7 @@ import sys
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QTableWidget, QTableWidgetItem, QProgressBar, QFileDialog,
+    QScrollArea, QAbstractItemView,
     QMessageBox, QInputDialog, QPushButton, QDialog, QComboBox, QSpinBox,
     QFormLayout, QDialogButtonBox, QLineEdit)
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QFont, QIcon
@@ -22,7 +23,8 @@ from karriere import appsettings, careerstate, core, paths, theme, \
 from karriere.widgets import (KpiCard, TrendChart, level_emblem,
                                offer_emblem, ACH_OPEN, ACH_UNLOCKED,
                                TIER_EMBLEM, HubHeader, HubCard,
-                               TierLadder, section_label)
+                               TierLadder, section_label,
+                               class_badge_pixmap)
 from karriere.models import APP_NAME, APP_VERSION, format_time_ms
 from karriere.core import CareerError, XP_PER_LEVEL, level_title
 
@@ -79,7 +81,21 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.tab_overview, "Uebersicht")
         tabs.addTab(self.tab_standings, "Meisterschaft")
         tabs.addTab(self.tab_achievements, "Erfolge")
+        for t in (self.tbl_races, self.tbl_standings, self.tbl_ach,
+                  self.tbl_invites, self.tbl_offers, self.tbl_tests):
+            self._style_table(t)
         self.setCentralWidget(tabs)
+
+    @staticmethod
+    def _style_table(t):
+        """Einheitliches Tabellenbild: Zebra-Zeilen, kein Gitter,
+        schreibgeschuetzt, Auswahl ganzer Zeilen."""
+        t.setAlternatingRowColors(True)
+        t.setShowGrid(False)
+        t.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        t.setSelectionBehavior(QAbstractItemView.SelectRows)
+        t.setSelectionMode(QAbstractItemView.SingleSelection)
+        t.verticalHeader().setVisible(False)
         self.statusBar().showMessage("")
 
     def _build_overview_tab(self):
@@ -109,10 +125,9 @@ class MainWindow(QMainWindow):
         kpi_row.setSpacing(8)
         for key, caption, color in kpis:
             card = KpiCard(caption, color=color)
-            card.setMinimumWidth(120)
+            card.setMinimumWidth(110)
             self.kpi_cards[key] = card
-            kpi_row.addWidget(card)
-        kpi_row.addStretch(1)
+            kpi_row.addWidget(card, 1)
         v.addLayout(kpi_row)
 
         v.addWidget(section_label("Karriere-Verlauf (kumulierte Punkte"
@@ -167,8 +182,8 @@ class MainWindow(QMainWindow):
         Meisterschafts-Karte, darunter Einladungen, Angebote, Testrennen."""
         w = QWidget()
         v = QVBoxLayout(w)
-        v.setContentsMargins(10, 10, 10, 10)
-        v.setSpacing(8)
+        v.setContentsMargins(14, 14, 14, 18)
+        v.setSpacing(10)
 
         self.career_header = HubHeader()
         v.addWidget(self.career_header)
@@ -249,7 +264,11 @@ class MainWindow(QMainWindow):
             ["Klasse", "Rennen", "Position im Schnitt", "Beste Position"])
         self.tbl_tests.horizontalHeader().setStretchLastSection(True)
         v.addWidget(self.tbl_tests, 1)
-        return w
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setWidget(w)
+        return scroll
 
     def _career_classes(self):
         """Klassen-Vorschlaege: bekannte Rennklassen + Hierarchie."""
@@ -527,12 +546,12 @@ class MainWindow(QMainWindow):
                 1 for a in self.career.achievements() if a["unlocked"])
             total_count = len(self.career.achievements())
             self.career_header.set_info(
-                "%s  Level %d - %s" % (level_emblem(lv), lv,
-                                      core.level_title(lv)),
+                "Level %d - %s" % (lv, core.level_title(lv)),
                 "Erfolge: %d / %d  |  Freigeschaltete Stufen: %s" % (
                     unlocked_count, total_count, careerstate.tier_ranges(
                         careerstate.unlocked_tiers(
-                            state, self.settings.get("class_tiers")))))
+                            state, self.settings.get("class_tiers")))),
+                badge=level_emblem(lv))
         else:
             self.career_header.set_info(
                 "Karrieretafel", "Keine Karriere-Daten")
@@ -617,6 +636,8 @@ class MainWindow(QMainWindow):
             for c, val in enumerate(vals):
                 item = QTableWidgetItem(val)
                 item.setTextAlignment(Qt.AlignCenter)
+                if c == 0:
+                    item.setIcon(QIcon(class_badge_pixmap(inv["class"])))
                 ti.setItem(i, c, item)
 
         offers = careerstate.open_offers(state)
@@ -632,6 +653,8 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(val)
                 if c == 0:
                     item.setData(Qt.UserRole, o["id"])
+                if c == 1:
+                    item.setIcon(QIcon(class_badge_pixmap(o["class"])))
                 t.setItem(i, c, item)
 
         if self.career is not None:
@@ -650,6 +673,8 @@ class MainWindow(QMainWindow):
             for c, val in enumerate(vals):
                 item = QTableWidgetItem(val)
                 item.setTextAlignment(Qt.AlignCenter)
+                if c == 0:
+                    item.setIcon(QIcon(class_badge_pixmap(cls_name)))
                 t2.setItem(i, c, item)
 
     # ---------------------------------------------------------- Aktionen --
@@ -785,6 +810,9 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(v)
                 if c in (5, 6, 7):
                     item.setTextAlignment(Qt.AlignCenter)
+                if c == 3 and r.vehicle_class:
+                    item.setIcon(QIcon(
+                        class_badge_pixmap(r.vehicle_class)))
                 if c == 5 and r.podium:
                     item.setForeground(QColor("#e8c34a"))
                 if c == 8 and not r.finished:

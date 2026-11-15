@@ -80,6 +80,9 @@ hervorgehoben.
   beendet die laufende Karriere und legt einen frischen Zustand an
   (Karrieretafel, Kontrakte und Freischaltungen werden geloescht; die
   Ergebnis-Datenbank bleibt unberuehrt).
+- **Klassen-Embleme:** Jede Fahrzeugklasse erhaelt eine stabige Farbe
+  und ein gezeichnetes Kuerzel-Emblem (QPainter, keine Assets) in
+  Rennhistorie, Einladungen, Angeboten und Testrennen.
 - **App-Icon:** Eigenes Icon (dunkles Karriere-Quadrat, diagonales
   RaceRoom-rotes Band, weisses K; erzeugt mit `python tools/gen_icon.py`).
   PyInstaller bettet es in die EXE und das Fenster ein, Inno Setup in den

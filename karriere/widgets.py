@@ -6,7 +6,8 @@ Emblem-Helfer fuer Level, Angebote und Erfolge. Qt-abhaengig, daher
 bewusst nicht Teil der unit-getesteten Kern-Logik.
 """
 from PySide6.QtCore import Qt, QPointF, QRectF
-from PySide6.QtGui import QColor, QPainter, QPen, QFont
+from PySide6.QtGui import (QColor, QPainter, QPen, QFont, QPixmap,
+                           QLinearGradient, QPainterPath)
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QSizePolicy,
                                 QVBoxLayout, QWidget)
 
@@ -89,12 +90,14 @@ class TrendChart(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
         w, h = self.width(), self.height()
-        card = QColor("#16161c")
+        card = QColor("#121218")
         line = QColor("#33333d")
         muted = QColor("#9a9aa4")
-        p.fillRect(0, 0, w, h, card)
+        frame = QPainterPath()
+        frame.addRoundedRect(QRectF(0.5, 0.5, w - 1, h - 1), 8.0, 8.0)
+        p.fillPath(frame, card)
         p.setPen(QPen(line, 1))
-        p.drawRect(0, 0, w - 1, h - 1)
+        p.drawPath(frame)
 
         ml, mr, mt, mb = 58, 16, 30, 30
         cw, ch = max(10, w - ml - mr), max(10, h - mt - mb)
@@ -141,21 +144,38 @@ class TrendChart(QWidget):
             p.drawText(QRectF(ml, mt + ch + 6, cw, 14), Qt.AlignRight,
                         self._x_label)
 
-        # Kurven
+        # Kurven mit Verlaufsflaeche darunter
         for _, color, values in self._series:
             if len(values) < 1:
                 continue
-            pen = QPen(QColor(color), 2)
-            p.setPen(pen)
+            base = QColor(color)
             pts = []
             for i, v in enumerate(values):
                 x = ml + (cw * i / (len(values) - 1 if len(values) > 1 else 1))
                 y = mt + ch - (ch * (float(v) / ymax))
                 pts.append(QPointF(x, y))
+            if len(pts) >= 2:
+                area = QPainterPath(QPointF(pts[0].x(), mt + ch))
+                for pt in pts:
+                    area.lineTo(pt)
+                area.lineTo(pts[-1].x(), mt + ch)
+                area.closeSubpath()
+                grad = QLinearGradient(0, mt, 0, mt + ch)
+                fill = QColor(base)
+                fill.setAlpha(60)
+                grad.setColorAt(0.0, fill)
+                fill2 = QColor(base)
+                fill2.setAlpha(0)
+                grad.setColorAt(1.0, fill2)
+                p.setPen(Qt.NoPen)
+                p.setBrush(grad)
+                p.drawPath(area)
+            pen = QPen(base, 2)
+            p.setPen(pen)
             for i in range(len(pts) - 1):
                 p.drawLine(pts[i], pts[i + 1])
             if pts:
-                p.setBrush(QColor(color))
+                p.setBrush(base)
                 p.drawEllipse(pts[-1], 3.0, 3.0)
 
 
@@ -170,27 +190,40 @@ def _fmt(v):
 class HubHeader(QWidget):
     """Kopfband im Stil der Project CARS 2 Karriere-Hubs.
 
-    Grosser Name/Titel, darunter kleine Untertitel-Zeile und ein roter
-    Akzent-Balken. set_info(title, sub) fuellt das Band.
+    Banner-Karte mit rundem Level-Emblem, grossem Titel und kleiner
+    Untertitel-Zeile. set_info(title, sub, badge="") fuellt das Band;
+    badge ist ein Emblem-Glyph (Level-Emblem) im runden Feld links.
     """
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(4, 6, 4, 10)
-        lay.setSpacing(2)
-        self.lbl_title = QLabel("", self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 10)
+        outer.setSpacing(0)
+        banner = QFrame(self)
+        banner.setObjectName("hubBanner")
+        lay = QHBoxLayout(banner)
+        lay.setContentsMargins(16, 12, 16, 12)
+        lay.setSpacing(14)
+        self.lbl_badge = QLabel("", banner)
+        self.lbl_badge.setObjectName("emblemBadge")
+        self.lbl_badge.setFixedSize(40, 40)
+        self.lbl_badge.setAlignment(Qt.AlignCenter)
+        lay.addWidget(self.lbl_badge)
+        text = QVBoxLayout()
+        text.setSpacing(2)
+        self.lbl_title = QLabel("", banner)
         self.lbl_title.setObjectName("hubBig")
-        lay.addWidget(self.lbl_title)
-        self.lbl_sub = QLabel("", self)
+        text.addWidget(self.lbl_title)
+        self.lbl_sub = QLabel("", banner)
         self.lbl_sub.setObjectName("hubSub")
-        lay.addWidget(self.lbl_sub)
-        rule = QLabel(self)
-        rule.setObjectName("accentRule")
-        rule.setFixedHeight(3)
-        lay.addWidget(rule)
+        text.addWidget(self.lbl_sub)
+        lay.addLayout(text, 1)
+        outer.addWidget(banner)
 
-    def set_info(self, title, sub=""):
+    def set_info(self, title, sub="", badge=""):
+        self.lbl_badge.setText(str(badge or ""))
+        self.lbl_badge.setVisible(bool(badge))
         self.lbl_title.setText(title)
         self.lbl_sub.setText(sub)
 
@@ -263,7 +296,7 @@ class TierLadder(QWidget):
             node = QFrame(self)
             node.setObjectName("tierNode")
             node.setProperty("state", status)
-            node.setFixedHeight(64)
+            node.setFixedHeight(76)
             lay = QVBoxLayout(node)
             lay.setContentsMargins(10, 6, 10, 6)
             lay.setSpacing(0)
@@ -294,3 +327,42 @@ class TierLadder(QWidget):
             lay.addWidget(label)
             self._lay.insertWidget(self._lay.count() - 1, node, 1)
             self._nodes.append(node)
+
+
+# Klassen-Embleme: deterministische Farbe je Fahrzeugklasse;
+# Badges werden zur Laufzeit mit QPainter gezeichnet (keine Assets).
+CLASS_COLORS = ["#e05260", "#4f8dfd", "#3fbf8f", "#e0a13f", "#a06fe0",
+                "#d06fd0", "#5ecfe8", "#8fd05e", "#e8734f", "#7f8fe0"]
+
+
+def class_color(cls):
+    """Stabile Farbe fuer eine Fahrzeugklasse."""
+    name = "".join(ch for ch in str(cls or "?").upper() if ch.isalnum())
+    return CLASS_COLORS[sum(ord(c) for c in name) % len(CLASS_COLORS)]
+
+
+def class_initials(cls):
+    """Bis zu drei Grossbuchstaben/Ziffern als Klassen-Kuerzel."""
+    name = "".join(ch for ch in str(cls or "?").upper() if ch.isalnum())
+    return name[:3] or "?"
+
+
+def class_badge_pixmap(cls, size=24):
+    """Runde Klassen-Kachel (Farbe + Kuerzel) als QPixmap."""
+    pm = QPixmap(size, size)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.Antialiasing, True)
+    color = QColor(class_color(cls))
+    edge = QColor(color)
+    edge.setAlpha(140)
+    p.setBrush(color)
+    p.setPen(QPen(edge, 1))
+    r = max(3.0, size * 0.30)
+    p.drawRoundedRect(QRectF(0.5, 0.5, size - 1, size - 1), r, r)
+    p.setPen(QColor("#ffffff"))
+    p.setFont(QFont("Segoe UI", max(6, int(size * 0.36)), QFont.Bold))
+    p.drawText(QRectF(0, 0, size, size), Qt.AlignCenter,
+               class_initials(cls))
+    p.end()
+    return pm
