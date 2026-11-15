@@ -234,6 +234,14 @@ class Career:
         """
         return self._full_standings()
 
+    def standings_for(self, session_ids):
+        """Punktetabelle nur ueber die angegebenen Sitzungs-Ids."""
+        conn = self._connect()
+        try:
+            return self._standings_sessions(list(session_ids), conn)
+        finally:
+            conn.close()
+
     def _full_standings(self):
         """Berechnet die Punktetabelle ueber ALLE Fahrer aller Rennen."""
         conn = self._connect()
@@ -242,47 +250,50 @@ class Career:
                 "SELECT id AS session_id FROM sessions "
                 "WHERE session_type LIKE 'Race%' "
                 "ORDER BY timestamp ASC, id ASC").fetchall()]
-            pts = {}
-            for sid in sessions:
-                entries = [dict(r) for r in conn.execute(
-                    "SELECT position, name, ai, best_lap_ms "
-                    "FROM entries WHERE session_id = ?", (sid,)).fetchall()]
-                if not entries:
-                    continue
-                me = self._player_entry(entries)
-                if me is None:
-                    continue   # fuer die Karriere nicht gezaehlte Sitzung
-                bests = [e["best_lap_ms"] for e in entries
-                         if e["best_lap_ms"] and e["best_lap_ms"] > 0]
-                fastest = min(bests) if bests else 0
-                for e in entries:
-                    if not e["name"] or not e["position"]:
-                        continue
-                    p = POINTS[e["position"] - 1] \
-                        if 1 <= e["position"] <= len(POINTS) else 0
-                    if p and fastest and e["best_lap_ms"] == fastest \
-                            and e["position"] <= 10:
-                        p += 1
-                    a = pts.setdefault(e["name"],
-                                        {"name": e["name"], "points": 0,
-                                         "wins": 0, "podium": 0, "races": 0,
-                                         "is_player": False})
-                    a["points"] += p
-                    a["races"] += 1
-                    if e["position"] == 1:
-                        a["wins"] += 1
-                    if 1 <= e["position"] <= 3:
-                        a["podium"] += 1
-            player = self.driver_name_detected()
-            for a in pts.values():
-                if player and a["name"] == player:
-                    a["is_player"] = True
-            out = sorted(pts.values(),
-                         key=lambda a: (-a["points"], -a["wins"], -a["races"],
-                                        a["name"]))
-            return out
+            return self._standings_sessions(sessions, conn)
         finally:
             conn.close()
+
+    def _standings_sessions(self, sessions, conn):
+        """Punktetabelle ueber die Sitzungen einer Liste (Feld inkl. KI)."""
+        pts = {}
+        for sid in sessions:
+            entries = [dict(r) for r in conn.execute(
+                "SELECT position, name, ai, best_lap_ms "
+                "FROM entries WHERE session_id = ?", (sid,)).fetchall()]
+            if not entries:
+                continue
+            me = self._player_entry(entries)
+            if me is None:
+                continue   # fuer die Karriere nicht gezaehlte Sitzung
+            bests = [e["best_lap_ms"] for e in entries
+                     if e["best_lap_ms"] and e["best_lap_ms"] > 0]
+            fastest = min(bests) if bests else 0
+            for e in entries:
+                if not e["name"] or not e["position"]:
+                    continue
+                p = POINTS[e["position"] - 1] \
+                    if 1 <= e["position"] <= len(POINTS) else 0
+                if p and fastest and e["best_lap_ms"] == fastest \
+                        and e["position"] <= 10:
+                    p += 1
+                a = pts.setdefault(e["name"],
+                                    {"name": e["name"], "points": 0,
+                                     "wins": 0, "podium": 0, "races": 0,
+                                     "is_player": False})
+                a["points"] += p
+                a["races"] += 1
+                if e["position"] == 1:
+                    a["wins"] += 1
+                if 1 <= e["position"] <= 3:
+                    a["podium"] += 1
+        player = self.driver_name_detected()
+        for a in pts.values():
+            if player and a["name"] == player:
+                a["is_player"] = True
+        return sorted(pts.values(),
+                      key=lambda a: (-a["points"], -a["wins"],
+                                     -a["races"], a["name"]))
 
     # ---------------------------------------------------------------- XP --
 

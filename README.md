@@ -2,8 +2,8 @@
 
 Karriere-Modus für RaceRoom: Wertet die Ergebnis-Datenbank von
 [R3E Resultate](https://github.com/Pfoetiman76/R3E-Resultate) automatisch
-aus und baut daraus eine durchgängige Karriere mit Meisterschaft, XP-Level
-und Erfolgen.
+aus und baut daraus eine durchgängige Karriere mit Meisterschaften,
+Vertragsangeboten, XP-Level und Erfolgen.
 
 ## Konzept
 
@@ -19,6 +19,34 @@ und Erfolgen.
   automatisch erkannt (einziger Fahrer ohne KI-Kennzeichen). Für
   Multiplayer-Sitzungen kann unter *Werkzeuge → Fahrernamen festlegen ...*
   der eigene Name hinterlegt werden.
+
+## Karriere-Modus
+
+- **Meisterschaft anlegen:** Start in einer beliebigen Klasse (freie
+  Wahl) mit einer selbst angelegten Meisterschaft: Name, Klasse und
+  geplante Rennanzahl (Standard 8). Passende Rennen werden automatisch
+  zugeordnet, solange die Meisterschaft läuft.
+- **Angebote am Saisonende:** Ist die geplante Rennanzahl erreicht,
+  entsteht je nach Ergebnis ein Angebotspaket – F1-Punkteschema als
+  Bewertungsgrundlage (Anteil an den theoretisch möglichen Punkten):
+  ab 45 % Aufstiegsangebot aus der nächsthöheren Klasse plus
+  Topteam-Angebote, 25–45 % Spitzenteams der eigenen Klasse,
+  unter 25 % Abstiegsangebot aus der nächsttieferen Klasse. Ein
+  angenommenes Angebot setzt den neuen Kontrakt (Klasse + Team);
+  die weiteren Angebote verfallen damit.
+- **Testrennen:** Einzelrennen in anderen Klassen, die keiner
+  Meisterschaft zugeordnet sind, zählen als Testrennen. Ein
+  Durchschnittsplatz von 3 oder besser erzeugt ein zusätzliches
+  Angebot dieser Klasse.
+- **Klassen-Hierarchie:** Vordefinierte R3E-Stufenleiter (Stufe 1 = DTC
+  bis Stufe 6 = LMP1), frei editierbar unter *Werkzeuge →
+  Klassen-Stufen bearbeiten ...*; unbekannte Klassen fallen auf
+  Stufe 3 zurück.
+- **Persistenz:** Der Karriere-Zustand (Kontrakt, Meisterschaften,
+  Angebote) liegt in `karriere.json` im App-Ordner (Eigentum dieser
+  App, atomar geschrieben); die `results.db` wird weiterhin nur
+  lesend gelesen.
+- **Geplant:** Einnahmen und Startgeld für höhere Klassen.
 
 ## Meisterschaft
 
@@ -44,6 +72,8 @@ hervorgehoben.
 ## Bedienung
 
 - Nach dem Start wird die Karriere sofort aufgebaut (F5 aktualisiert).
+- Tab **Karriere**: Kontrakt, aktive Meisterschaft mit Fortschritt,
+  offene Angebote (Annehmen/Ablehnen) und die Testrennen-Statistik.
 - Tab **Übersicht**: Level, XP-Balken, Kacheln (Rennen, Siege, Podien,
   Pole, Punkte ...) und die Rennhistorie.
 - Tab **Meisterschaft**: Punktetabelle aller Fahrer.
@@ -52,7 +82,7 @@ hervorgehoben.
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 18 Unit-Tests
+python -m unittest discover -s tests   # 33 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 

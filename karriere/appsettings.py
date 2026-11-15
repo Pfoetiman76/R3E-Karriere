@@ -8,7 +8,19 @@ import json
 import os
 
 SETTINGS_FILENAME = "settings.json"
-DEFAULTS = {"driver_name": "", "results_db": ""}
+DEFAULTS = {"driver_name": "", "results_db": "", "class_tiers": {}}
+
+
+def _clean_class_tiers(value):
+    if not isinstance(value, dict):
+        return {}
+    out = {}
+    for k, v in value.items():
+        try:
+            out[str(k).strip()] = int(v)
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def settings_path(app_dir):
@@ -30,6 +42,7 @@ def load_settings(path):
     s.update({k: v for k, v in data.items() if k in DEFAULTS})
     s["driver_name"] = str(s["driver_name"] or "").strip()
     s["results_db"] = str(s["results_db"] or "").strip()
+    s["class_tiers"] = _clean_class_tiers(s["class_tiers"])
     return s
 
 
@@ -38,6 +51,7 @@ def save_settings(path, settings):
     clean = {k: settings.get(k, DEFAULTS[k]) for k in DEFAULTS}
     clean["driver_name"] = str(clean["driver_name"] or "").strip()
     clean["results_db"] = str(clean["results_db"] or "").strip()
+    clean["class_tiers"] = _clean_class_tiers(clean["class_tiers"])
     os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:

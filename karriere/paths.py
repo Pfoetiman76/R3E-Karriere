@@ -36,3 +36,8 @@ def default_results_db():
     """Standardpfad der Ergebnis-Datenbank von R3E Resultate."""
     docs = _windows_documents() or os.path.expanduser("~")
     return os.path.join(docs, RESULTS_APP_DIR_NAME, "results.db")
+
+
+def career_state_path(app_dir):
+    """Pfad der Karriere-Datei (karriere.json, Eigentum dieser App)."""
+    return os.path.join(app_dir, "karriere.json")
