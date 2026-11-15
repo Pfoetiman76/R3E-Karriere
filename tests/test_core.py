@@ -261,7 +261,7 @@ class CareerEngineTest(unittest.TestCase):
 
     def test_version(self):
         from karriere.models import APP_VERSION
-        self.assertEqual(APP_VERSION, "0.4.1")
+        self.assertEqual(APP_VERSION, "0.5.0")
 
 
 if __name__ == "__main__":

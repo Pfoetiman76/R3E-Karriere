@@ -21,7 +21,8 @@ from karriere import appsettings, careerstate, core, paths, theme, \
     updatecheck
 from karriere.widgets import (KpiCard, TrendChart, level_emblem,
                                offer_emblem, ACH_OPEN, ACH_UNLOCKED,
-                               TIER_EMBLEM)
+                               TIER_EMBLEM, HubHeader, HubCard,
+                               TierLadder, section_label)
 from karriere.models import APP_NAME, APP_VERSION, format_time_ms
 from karriere.core import CareerError, XP_PER_LEVEL, level_title
 
@@ -111,15 +112,12 @@ class MainWindow(QMainWindow):
         kpi_row.addStretch(1)
         v.addLayout(kpi_row)
 
-        lbl_chart = QLabel("Karriere-Verlauf (kumulierte Punkte und XP)")
-        lbl_chart.setObjectName("sectionTitle")
-        v.addWidget(lbl_chart)
+        v.addWidget(section_label("Karriere-Verlauf (kumulierte Punkte"
+                                  " und XP)"))
         self.chart = TrendChart()
         v.addWidget(self.chart, 2)
 
-        self.lbl_history = QLabel("Rennhistorie")
-        self.lbl_history.setObjectName("sectionTitle")
-        v.addWidget(self.lbl_history)
+        v.addWidget(section_label("Rennhistorie"))
         self.tbl_races = QTableWidget(0, 9)
         self.tbl_races.setHorizontalHeaderLabels(
             ["Datum", "Strecke", "Fahrzeug", "Klasse", "Fahrer",
@@ -161,20 +159,44 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------- Karriere-Modus --
 
     def _build_career_tab(self):
+        """Karriere-Hub im Stil der Project CARS 2 Karrierezentrale:
+        Kopfband mit Rang, Stufenleiter als Knotenreihe, Kontrakt- und
+        Meisterschafts-Karte, darunter Einladungen, Angebote, Testrennen."""
         w = QWidget()
         v = QVBoxLayout(w)
-        self.lbl_rank = QLabel("")
-        self.lbl_rank.setObjectName("sectionTitle")
-        v.addWidget(self.lbl_rank)
-        self.lbl_unlocked = QLabel("")
-        self.lbl_unlocked.setObjectName("hint")
-        v.addWidget(self.lbl_unlocked)
+        v.setContentsMargins(10, 10, 10, 10)
+        v.setSpacing(8)
+
+        self.career_header = HubHeader()
+        v.addWidget(self.career_header)
+
+        v.addWidget(section_label("Klassen-Stufen"))
+        self.tier_ladder = TierLadder()
+        v.addWidget(self.tier_ladder)
+
+        cards = QHBoxLayout()
+        cards.setSpacing(10)
+        self.card_contract = HubCard("Kontrakt")
         self.lbl_contract = QLabel("")
-        self.lbl_contract.setObjectName("brandTitle")
-        v.addWidget(self.lbl_contract)
+        self.lbl_contract.setObjectName("hubTitle")
+        self.lbl_contract.setWordWrap(True)
         self.lbl_tier = QLabel("")
-        self.lbl_tier.setObjectName("brandSub")
-        v.addWidget(self.lbl_tier)
+        self.lbl_tier.setObjectName("hubSub")
+        self.lbl_tier.setWordWrap(True)
+        self.card_contract.body.addWidget(self.lbl_contract)
+        self.card_contract.body.addWidget(self.lbl_tier)
+        cards.addWidget(self.card_contract, 1)
+
+        self.card_champ = HubCard("Meisterschaft")
+        self.lbl_champ = QLabel("")
+        self.lbl_champ.setWordWrap(True)
+        self.champ_bar = QProgressBar()
+        self.champ_bar.setFormat("Meisterschaft: %v / %m Rennen")
+        self.champ_bar.setFixedHeight(16)
+        self.card_champ.body.addWidget(self.lbl_champ)
+        self.card_champ.body.addWidget(self.champ_bar)
+        cards.addWidget(self.card_champ, 1)
+        v.addLayout(cards)
 
         row = QHBoxLayout()
         self.btn_new_champ = QPushButton("Meisterschaft anlegen ...")
@@ -190,18 +212,8 @@ class MainWindow(QMainWindow):
         row.addStretch(1)
         v.addLayout(row)
 
-        self.lbl_champ = QLabel("")
-        self.lbl_champ.setWordWrap(True)
-        v.addWidget(self.lbl_champ)
-        self.champ_bar = QProgressBar()
-        self.champ_bar.setFormat("Meisterschaft: %v / %m Rennen")
-        self.champ_bar.setFixedHeight(16)
-        v.addWidget(self.champ_bar)
-
-        lbl_inv = QLabel("Einladungs-Events (gute Testrennen"
-                         " in fremden Klassen)")
-        lbl_inv.setObjectName("sectionTitle")
-        v.addWidget(lbl_inv)
+        v.addWidget(section_label("Einladungs-Events (gute Testrennen"
+                                  " in fremden Klassen)"))
         inv_row = QHBoxLayout()
         self.tbl_invites = QTableWidget(0, 4)
         self.tbl_invites.setHorizontalHeaderLabels(
@@ -218,9 +230,7 @@ class MainWindow(QMainWindow):
         inv_row.addLayout(inv_btns)
         v.addLayout(inv_row)
 
-        lbl_offers = QLabel("Angebote")
-        lbl_offers.setObjectName("sectionTitle")
-        v.addWidget(lbl_offers)
+        v.addWidget(section_label("Angebote"))
         self.tbl_offers = QTableWidget(0, 5)
         self.tbl_offers.setHorizontalHeaderLabels(
             ["Typ", "Klasse", "Team", "Staerke", "Status"])
@@ -228,10 +238,9 @@ class MainWindow(QMainWindow):
         self.tbl_offers.setSelectionBehavior(QTableWidget.SelectRows)
         v.addWidget(self.tbl_offers, 2)
 
-        lbl_tests = QLabel("Testrennen (nicht zugeordnete Rennen;"
-                          " gute Ergebnisse verbessern die Angebote)")
-        lbl_tests.setObjectName("sectionTitle")
-        v.addWidget(lbl_tests)
+        v.addWidget(section_label("Testrennen (nicht zugeordnete Rennen;"
+                                  " gute Ergebnisse verbessern die"
+                                  " Angebote)"))
         self.tbl_tests = QTableWidget(0, 4)
         self.tbl_tests.setHorizontalHeaderLabels(
             ["Klasse", "Rennen", "Position im Schnitt", "Beste Position"])
@@ -484,18 +493,38 @@ class MainWindow(QMainWindow):
             unlocked_count = sum(
                 1 for a in self.career.achievements() if a["unlocked"])
             total_count = len(self.career.achievements())
-            self.lbl_rank.setText(
-                "Karrieretafel - Rang: Level %d %s (%s) | Erfolge:"
-                " %d / %d" % (
-                    lv, level_emblem(lv), core.level_title(lv),
-                    unlocked_count, total_count))
+            self.career_header.set_info(
+                "%s  Level %d - %s" % (level_emblem(lv), lv,
+                                      core.level_title(lv)),
+                "Erfolge: %d / %d  |  Freigeschaltete Stufen: %s" % (
+                    unlocked_count, total_count, careerstate.tier_ranges(
+                        careerstate.unlocked_tiers(
+                            state, self.settings.get("class_tiers")))))
         else:
-            self.lbl_rank.setText("Karrieretafel")
+            self.career_header.set_info(
+                "Karrieretafel", "Keine Karriere-Daten")
         tiers_cfg = self.settings.get("class_tiers")
-        self.lbl_unlocked.setText(
-            "Freigeschaltete Klassen-Stufen: %s" % careerstate.tier_ranges(
-                careerstate.unlocked_tiers(state, tiers_cfg)))
+        merged = careerstate.merged_tiers(tiers_cfg)
+        unlocked = set(careerstate.unlocked_tiers(state, tiers_cfg))
         cls = state.get("current_class") or ""
+        current_tier = (careerstate.tier_of(cls, tiers_cfg)
+                        if cls else None)
+        ladder = []
+        for t in range(1, 7):
+            names = sorted(c for c, tt in merged.items() if tt == t)
+            text = ", ".join(names[:2])
+            if len(names) > 2:
+                text += " +%d" % (len(names) - 2)
+            if not text:
+                text = "-"
+            if t == current_tier:
+                status = "active"
+            elif t in unlocked:
+                status = "open"
+            else:
+                status = "locked"
+            ladder.append((t, status, text))
+        self.tier_ladder.set_tiers(ladder)
         team = state.get("current_team") or ""
         self.lbl_contract.setText(
             "Kontrakt: %s%s" % (team or "-",

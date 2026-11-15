@@ -1,10 +1,13 @@
-"""Dark-Optik fuer R3E Karriere (RaceRoom-Rot-Akzent).
+"""Optik im Stil der Project CARS 2 Karriere-Hubs (RaceRoom-Rot-Akzent).
 
-Struktur: Reiter oben, Filterzeilen darunter, kompakte Tabellen mit feinen
-Gitterlinien (kein Zebra), technische Schrift (Consolas) fuer Zeitwerte,
-gelbe Hervorhebung fuer Rekordwerte, Statusleiste unten. Akzentfarbe ist
-durchgaengig RaceRoom-Rot #e8212b (aktiver Reiter, Primaer-Button,
-Zielauswahl, Statuspunkt).
+Gestaltungsprinzipien (Vorbild: Project CARS 2 Karriere-Menue):
+- Tiefschwarzer Hintergrund mit Panel-Karten in Karbon-Grau.
+- Grosse, kondensierte Typografie: Hub-Titel, Kapitel-Überschriften
+  in Grossbuchstaben mit rotem Akzent-Balken darunter.
+- Klare Karten-Rahmen (Hub Cards) mit linkem Akzent-Streifen.
+- Aktive Reiter und Primaer-Aktionen mit roter Unterstreichung
+  bzw. rotem Balken; Statusleiste unten. Akzentfarbe bleibt
+  durchgaengig RaceRoom-Rot #e8212b.
 """
 RR_RED = "#e8212b"
 RR_RED_H = "#ff3a45"
@@ -12,32 +15,34 @@ RR_RED_D = "#b31b24"
 REC_YELLOW = "#e8c34a"
 
 _PAL = {
-    "BG": "#131318", "PANEL": "#1a1a20", "PANEL2": "#202027", "INPUT": "#141419",
-    "LINE": "#33333d", "LINE2": "#3d3d48", "TEXT": "#e8e8ec", "MUTED": "#9a9aa4",
-    "BAR": "#0e0e12", "HOVER": "#22222a", "ACC": RR_RED, "ACC_H": RR_RED_H,
-    "ACC_D": RR_RED_D, "SCROLL": "#34343c", "ACC_TXT": "#ff5a63",
-    "SEL": "#3a2220", "CARD": "#16161c", "HEAD": "#2a2a32",
-    "BTN": "#23232b", "BTN_H": "#2b2b34", "BTN_B": "#33333d",
+    "BG": "#0c0c10", "PANEL": "#15151b", "PANEL2": "#1c1c23", "INPUT": "#101015",
+    "LINE": "#2a2a33", "LINE2": "#36363f", "TEXT": "#ecedef", "MUTED": "#8e8e99",
+    "BAR": "#09090d", "HOVER": "#22222b", "ACC": RR_RED, "ACC_H": RR_RED_H,
+    "ACC_D": RR_RED_D, "SCROLL": "#32323c", "ACC_TXT": "#ff5a63",
+    "SEL": "#3a2220", "CARD": "#121218", "HEAD": "#202028",
+    "BTN": "#1e1e25", "BTN_H": "#26262f", "BTN_B": "#33333d",
 }
 
 _QSS = """
-QWidget { font-family: "Segoe UI", "Inter", "Montserrat", sans-serif; font-size: 13px; color: @TEXT@; }
+QWidget { font-family: "Bahnschrift", "Segoe UI", "Inter", sans-serif; font-size: 13px; color: @TEXT@; }
 QMainWindow, QWidget { background: @BG@; }
 QLabel { background: transparent; color: @TEXT@; }
 QLabel[plain="true"] { background: transparent; }
-QLabel#brandTitle { font-size: 19px; font-weight: 800; color: @TEXT@; background: transparent; }
+QLabel#brandTitle { font-size: 24px; font-weight: 800; color: @TEXT@; background: transparent; }
 QLabel#brandSub, QLabel#hint, QLabel#statusLine { color: @MUTED@; background: transparent; font-size: 12px; }
-QLabel#sectionTitle { font-size: 12px; font-weight: 700; color: @MUTED@; background: transparent; }
-QTabWidget::pane { border: none; border-top: 2px solid @LINE@; background: transparent; top: -1px; }
+QLabel#sectionTitle { font-size: 13px; font-weight: 800; color: @TEXT@; background: transparent; }
+QLabel#sectionTitle:disabled { color: @MUTED@; }
+QLabel#accentRule { background: @ACC@; border: none; }
+QTabWidget::pane { border: none; border-top: 1px solid @LINE@; background: transparent; top: -1px; }
 QTabBar { background: @BAR@; }
-QTabBar::tab { background: transparent; color: @MUTED@; padding: 8px 16px; margin-right: 2px; border: 1px solid transparent; border-bottom: none; font-weight: 700; }
-QTabBar::tab:hover { color: @TEXT@; }
-QTabBar::tab:selected { color: @TEXT@; background: @BG@; border-color: @LINE@; border-top: 3px solid @ACC@; padding-top: 5px; }
-QPushButton { background: @BTN@; color: @TEXT@; border: 1px solid @BTN_B@; padding: 7px 14px; border-radius: 2px; font-weight: 700; }
+QTabBar::tab { background: transparent; color: @MUTED@; padding: 9px 18px; margin-right: 2px; border: none; border-bottom: 3px solid transparent; font-weight: 800; font-size: 12px; }
+QTabBar::tab:hover { color: @TEXT@; border-bottom: 3px solid @LINE2@; }
+QTabBar::tab:selected { color: @TEXT@; border-bottom: 3px solid @ACC@; }
+QPushButton { background: @BTN@; color: @TEXT@; border: 1px solid @BTN_B@; padding: 8px 16px; border-radius: 2px; font-weight: 700; }
 QPushButton:hover { border-color: #4a4a55; background: @BTN_H@; }
 QPushButton:pressed { background: @BG@; }
 QPushButton:disabled { color: @MUTED@; background: @PANEL@; border-color: @LINE@; }
-QPushButton#primary { background: @ACC@; color: #ffffff; border: 1px solid @ACC_D@; padding: 8px 18px; }
+QPushButton#primary { background: @ACC@; color: #ffffff; border: 1px solid @ACC_D@; padding: 9px 20px; }
 QPushButton#primary:hover { background: @ACC_H@; border-color: @ACC_H@; }
 QPushButton#primary:pressed { background: @ACC_D@; }
 QTextEdit, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox { background: @INPUT@; color: @TEXT@; border: 1px solid @LINE@; border-radius: 2px; selection-background-color: @ACC@; selection-color: #ffffff; }
@@ -57,15 +62,24 @@ QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right ce
 QComboBox::drop-down:hover { background: @ACC@; }
 QComboBox::down-arrow { image: none; width: 1px; }
 QComboBox QAbstractItemView { background: @PANEL@; color: @TEXT@; selection-background-color: @ACC@; selection-color: #ffffff; outline: 0; border: 1px solid @LINE2@; padding: 2px; }
-QTableView, QTableWidget { background: @PANEL@; color: @TEXT@; gridline-color: @LINE@; border: 1px solid @LINE@; border-radius: 0; selection-background-color: @SEL@; selection-color: @TEXT@; }
-QTableView::item, QTableWidget::item { padding: 4px 10px; border: 0; }
+QTableView, QTableWidget { background: @PANEL@; color: @TEXT@; gridline-color: #22222a; border: 1px solid @LINE@; border-radius: 0; selection-background-color: @SEL@; selection-color: @TEXT@; }
+QTableView::item, QTableWidget::item { padding: 5px 10px; border: 0; }
 QTableView::item:hover, QTableWidget::item:hover { background: @HOVER@; }
 QTableView::item:selected, QTableWidget::item:selected { background: @SEL@; color: @TEXT@; }
-QHeaderView::section { background: @HEAD@; color: @TEXT@; padding: 6px 10px; border: none; border-right: 1px solid @LINE@; border-bottom: 1px solid @LINE@; font-size: 11.5px; font-weight: 700; }
-QFrame#kpiCard { background: @CARD@; border: 1px solid @LINE@; border-radius: 3px; }
-QLabel#kpiValue { font-size: 26px; font-weight: 800; background: transparent; }
+QHeaderView::section { background: @HEAD@; color: @MUTED@; padding: 7px 10px; border: none; border-right: 1px solid @LINE@; border-bottom: 1px solid @ACC_D@; font-size: 11px; font-weight: 800; }
+QFrame#kpiCard, QFrame#hubCard, QWidget#chartCard { background: @CARD@; border: 1px solid @LINE@; border-left: 3px solid @ACC@; border-radius: 2px; }
+QFrame#hubCardPlain { background: @CARD@; border: 1px solid @LINE@; border-radius: 2px; }
+QLabel#kpiValue { font-size: 28px; font-weight: 800; background: transparent; }
 QLabel#kpiCaption { color: @MUTED@; font-size: 11px; font-weight: 700; background: transparent; }
-QWidget#chartCard { background: @CARD@; border: 1px solid @LINE@; border-radius: 3px; }
+QLabel#hubTitle { font-size: 15px; font-weight: 800; color: @TEXT@; background: transparent; }
+QLabel#hubBig { font-size: 21px; font-weight: 800; color: @TEXT@; background: transparent; }
+QLabel#hubSub { color: @MUTED@; font-size: 12px; background: transparent; }
+QLabel#tierNum { font-size: 20px; font-weight: 800; background: transparent; }
+QLabel#tierLabel { font-size: 10px; font-weight: 700; background: transparent; }
+QFrame#tierNode { background: @CARD@; border: 1px solid @LINE@; border-radius: 2px; }
+QFrame#tierNode[state="active"] { background: @SEL@; border: 1px solid @ACC@; }
+QFrame#tierNode[state="open"] { background: @CARD@; border: 1px solid @LINE2@; }
+QFrame#tierNode[state="locked"] { background: #0e0e13; border: 1px solid #23232b; }
 QScrollBar:vertical { background: transparent; width: 9px; margin: 2px; }
 QScrollBar::handle:vertical { background: @SCROLL@; border-radius: 2px; min-height: 30px; }
 QScrollBar::handle:vertical:hover { background: @ACC@; }
@@ -90,7 +104,7 @@ QCheckBox { spacing: 6px; }
 QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid @LINE2@; background: @INPUT@; border-radius: 2px; }
 QCheckBox::indicator:checked { background: @ACC@; border-color: @ACC@; }
 QDialog { background: @BG@; }
-QProgressBar { background: @INPUT@; color: @TEXT@; border: 1px solid @LINE@; border-radius: 2px; text-align: center; }
+QProgressBar { background: @INPUT@; color: @TEXT@; border: 1px solid @LINE@; border-radius: 2px; text-align: center; font-weight: 700; }
 QProgressBar::chunk { background: @ACC@; }
 """
 
@@ -103,6 +117,6 @@ def dark_qss() -> str:
 
 
 def apply_dark_theme(app):
-    """Fusion-Stil + Dark-Stylesheet auf die Anwendung anwenden."""
+    """Fusion-Stil + PCARS2-Hub-Stylesheet auf die Anwendung anwenden."""
     app.setStyle("Fusion")
     app.setStyleSheet(dark_qss())

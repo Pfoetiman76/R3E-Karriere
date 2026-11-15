@@ -38,11 +38,15 @@ Vertragsangeboten, XP-Level und Erfolgen.
   Meisterschaft zugeordnet sind, zählen als Testrennen. Ein
   Durchschnittsplatz von 3 oder besser erzeugt ein zusätzliches
   Angebot dieser Klasse.
-- **Karrieretafel (Vorbild Project CARS 2):** Der Karriere-Reiter zeigt
-  den Rang (Level, Emblem, Titel, Erfolge) und die freigeschalteten
-  Klassen-Stufen. Die erste Meisterschaft ist frei waehlbar; danach
+- **Karrieretafel (Vorbild Project CARS 2):** Der Karriere-Reiter ist ein
+  Karriere-Hub im Stil der Project CARS 2 Karrierezentrale: Kopfband mit
+  Rang (Level-Emblem und Titel), Stufenleiter als Knotenreihe (aktive
+  Stufe rot, freigeschaltete offen, gesperrte ausgegraut), Kontrakt- und
+  Meisterschafts-Karte. Die erste Meisterschaft ist frei waehlbar; danach
   sind hoehere Stufen erst nach Aufstiegs-Angebot, Einladung oder
-  starker Saison (Bewertung >= 45 %) verfuegbar.
+  starker Saison (Bewertung >= 45 %) verfuegbar. Die Optik der gesamten
+  App ist an das Project CARS 2 Menue angelehnt (kondensierte Typografie,
+  Hub-Karten, rote Akzent-Balken) bei beibehaltenem RaceRoom-Rot.
 - **Einladungs-Events:** Gute Testrennen (Durchschnittsplatz <= 3) in
   fremden Klassen erzeugen jederzeit eine Testfahrer-Einladung mit
   Kontrakt - analog den Einladungs-Events in Project CARS 2.
@@ -108,7 +112,7 @@ hervorgehoben.
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 45 Unit-Tests
+python -m unittest discover -s tests   # 43 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 

@@ -163,3 +163,135 @@ def _fmt(v):
     if v >= 1000:
         return "%dk" % int(round(v / 1000.0))
     return str(int(v) if float(v).is_integer() else round(v, 1))
+
+
+section_label = _section_label
+
+
+class HubHeader(QWidget):
+    """Kopfband im Stil der Project CARS 2 Karriere-Hubs.
+
+    Grosser Name/Titel, darunter kleine Untertitel-Zeile und ein roter
+    Akzent-Balken. set_info(title, sub) fuellt das Band.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(4, 6, 4, 10)
+        lay.setSpacing(2)
+        self.lbl_title = QLabel("", self)
+        self.lbl_title.setObjectName("hubBig")
+        lay.addWidget(self.lbl_title)
+        self.lbl_sub = QLabel("", self)
+        self.lbl_sub.setObjectName("hubSub")
+        lay.addWidget(self.lbl_sub)
+        rule = QLabel(self)
+        rule.setObjectName("accentRule")
+        rule.setFixedHeight(3)
+        lay.addWidget(rule)
+
+    def set_info(self, title, sub=""):
+        self.lbl_title.setText(title)
+        self.lbl_sub.setText(sub)
+
+
+def _section_label(text):
+    """Kapitel-Überschrift mit rotem Akzent-Balken darunter."""
+    box = QWidget()
+    v = QVBoxLayout(box)
+    v.setContentsMargins(0, 0, 0, 6)
+    v.setSpacing(4)
+    lbl = QLabel(text, box)
+    lbl.setObjectName("hubTitle")
+    v.addWidget(lbl)
+    rule = QLabel(box)
+    rule.setObjectName("accentRule")
+    rule.setFixedHeight(2)
+    rule.setMaximumWidth(180)
+    v.addWidget(rule)
+    return box
+
+
+class HubCard(QFrame):
+    """Karte mit Ueberschriften-Band (linker Akzent-Streifen via QSS)."""
+
+    def __init__(self, title="", parent=None):
+        super().__init__(parent)
+        self.setObjectName("hubCard")
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(14, 10, 14, 12)
+        lay.setSpacing(6)
+        self.lbl_title = QLabel(title, self)
+        self.lbl_title.setObjectName("hubSub")
+        lay.addWidget(self.lbl_title)
+        self.body = QVBoxLayout()
+        self.body.setSpacing(4)
+        lay.addLayout(self.body)
+
+    def set_title(self, title):
+        self.lbl_title.setText(title)
+
+
+class TierLadder(QWidget):
+    """Stufenleiter als Knotenreihe (Vorbild: Project CARS 2 Tier-Pfad).
+
+    set_tiers([(stufe, emblem, [klassen], zustand), ...]) mit zustand in
+    {"locked", "open", "active"}; zeichnet je Stufe eine Karte mit
+    Stufen-Nummer, Emblem und Statusfarbe.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._lay = QHBoxLayout(self)
+        self._lay.setContentsMargins(0, 0, 0, 0)
+        self._lay.setSpacing(6)
+        self._lay.addStretch(1)
+        self._nodes = []
+
+    def clear(self):
+        while self._lay.count() > 1:
+            item = self._lay.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+        self._nodes = []
+
+    def set_tiers(self, tiers):
+        """tiers: [(stufe, status, klassen_text), ...] Status wie oben."""
+        self.clear()
+        for stufe, status, klassen in tiers:
+            node = QFrame(self)
+            node.setObjectName("tierNode")
+            node.setProperty("state", status)
+            node.setFixedHeight(64)
+            lay = QVBoxLayout(node)
+            lay.setContentsMargins(10, 6, 10, 6)
+            lay.setSpacing(0)
+            head = QHBoxLayout()
+            head.setSpacing(6)
+            num = QLabel(str(stufe), node)
+            num.setObjectName("tierNum")
+            if status == "locked":
+                num.setStyleSheet("color: #55555f;")
+            elif status == "active":
+                num.setStyleSheet("color: #ff5a63;")
+            else:
+                num.setStyleSheet("color: #ecedef;")
+            head.addWidget(num)
+            emblem = QLabel(TIER_EMBLEM, node)
+            emblem.setObjectName("tierLabel")
+            emblem.setStyleSheet("font-size: 14px;")
+            head.addWidget(emblem)
+            head.addStretch(1)
+            lay.addLayout(head)
+            label = QLabel(klassen, node)
+            label.setObjectName("tierLabel")
+            label.setWordWrap(True)
+            if status == "locked":
+                label.setStyleSheet("color: #55555f;")
+            else:
+                label.setStyleSheet("color: #8e8e99;")
+            lay.addWidget(label)
+            self._lay.insertWidget(self._lay.count() - 1, node, 1)
+            self._nodes.append(node)
