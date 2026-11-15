@@ -12,7 +12,8 @@ from karriere.careerstate import (
     CareerModeError, accept_offer, active_championship, decline_offer,
     load_state, new_state, save_state, start_championship, tier_of,
     classes_of_tier, team_for_tier, test_reports, refresh,
-    finish_championship, open_offers, filter_races_from, STATE_VERSION)
+    finish_championship, open_offers, filter_races_from, unlocked_tiers,
+    tier_ranges, invitations, accept_invitation, STATE_VERSION)
 
 
 class FakeRace:
@@ -183,6 +184,69 @@ class CareerStateTest(unittest.TestCase):
                          offers[1:])
         with self.assertRaises(CareerModeError):
             decline_offer(self.state, 99999)
+
+    # ------------------------------------ Stufen-Freischaltung (v0.4.0) --
+
+    def test_unlocked_tiers_and_gating(self):
+        """Erste Meisterschaft frei; danach nur freigeschaltete Stufen."""
+        # Erste Meisterschaft: jede Stufe waehlbar
+        champ = start_championship(self.state, "S1", "LMP1", 1)
+        self.assertEqual(champ["tier"], 6)
+        # Starke Saison in Stufe 6: mehr gibt es nicht, Stufe 6 bleibt
+        refresh(self.state, [FakeRace(1, "LMP1", points=26, position=1)])
+        self.assertEqual(unlocked_tiers(self.state), {1, 6})
+        # Nach der Saison: Stufe 4 ohne Freischaltung abgelehnt
+        with self.assertRaises(CareerModeError):
+            start_championship(self.state, "S2", "GTE", 1)
+        # Abstieg in Stufe 1 ist immer moeglich
+        champ2 = start_championship(self.state, "S2", "STCC", 1)
+        self.assertEqual(champ2["tier"], 1)
+
+    def test_unlocked_via_promotion(self):
+        champ = start_championship(self.state, "S1", "GT3", 1)
+        refresh(self.state, [FakeRace(1, "GT3", points=26, position=1)])
+        offers = open_offers(self.state)
+        promo = [o for o in offers if o["type"] == "Aufstieg"][0]
+        accept_offer(self.state, promo["id"])
+        self.assertEqual(unlocked_tiers(self.state), {1, 3, 4})
+        # Stufe 4 ist nun freigeschaltet
+        champ2 = start_championship(self.state, "S2", "GTE", 1)
+        self.assertEqual(champ2["tier"], 4)
+
+    def test_tier_ranges_text(self):
+        self.assertEqual(tier_ranges({1, 2, 3, 5}), "1-3, 5")
+        self.assertEqual(tier_ranges({4}), "4")
+        self.assertEqual(tier_ranges(set()), "")
+
+    # -------------------------------------------- Einladungs-Events (v0.4.0) --
+
+    def test_invitation_from_test_race(self):
+        """Gutes Testrennen in einer fremden Klasse erzeugt eine
+        Einladung, unabhaengig vom Meisterschaftsende."""
+        start_championship(self.state, "S", "GT3", 4)
+        races = [FakeRace(1, "GT3", points=26, position=1),
+                 FakeRace(2, "LMP2", points=25, position=1)]
+        refresh(self.state, races)
+        invs = invitations(self.state, races)
+        self.assertEqual([i["class"] for i in invs], ["LMP2"])
+        self.assertEqual(invs[0]["team"], team_for_tier(5, 4))
+        # Annehmen setzt den Kontrakt und schaltet die Stufe frei
+        rec = accept_invitation(self.state, "LMP2", races)
+        self.assertEqual(rec["team"], invs[0]["team"])
+        self.assertEqual(self.state["current_class"], "LMP2")
+        self.assertIn(5, unlocked_tiers(self.state))
+        # Doppelte Annahme derselben Klasse ist gesperrt
+        with self.assertRaises(CareerModeError):
+            accept_invitation(self.state, "LMP2", races)
+        # Angenommene Klasse erscheint nicht erneut
+        self.assertEqual(invitations(self.state, races), [])
+
+    def test_invitation_requires_good_result(self):
+        start_championship(self.state, "S", "GT3", 4)
+        races = [FakeRace(1, "GT3", points=26, position=1),
+                 FakeRace(2, "LMP2", points=0, position=9)]
+        refresh(self.state, races)
+        self.assertEqual(invitations(self.state, races), [])
 
     # ------------------------------------------------- Startdatum-Filter --
 

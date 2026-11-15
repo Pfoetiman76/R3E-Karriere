@@ -28,6 +28,7 @@ RELEGATION_RATIO = 0.25    # darunter: Angebot aus einer tieferen Klasse
 TEST_AVG_POS = 3.0         # Testrennen: max. Durchschnittsposition
 
 DEFAULT_TIER = 3           # Stufe fuer unbekannte Klassen
+MAX_TIER = 6               # hoechste Klassen-Stufe
 
 # Vordefinierte R3E-Klassen-Hierarchie (Stufe 1 = langsamste).
 # In den Einstellungen frei editierbar (class_tiers), unbekannte Klassen
@@ -153,6 +154,9 @@ def load_state(path):
     if isinstance(data.get("championships"), list):
         s["championships"] = [c for c in data["championships"]
                               if isinstance(c, dict)]
+    if isinstance(data.get("invitations"), list):
+        s["invitations"] = [i for i in data["invitations"]
+                            if isinstance(i, dict)]
     try:
         s["next_id"] = max(1, int(data.get("next_id", 1)))
     except (TypeError, ValueError):
@@ -167,6 +171,106 @@ def save_state(path, state):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False)
     os.replace(tmp, path)
+
+
+# ---------------------------------------------------- Stufen-Freischaltung --
+
+def unlocked_tiers(state, tiers=None):
+    """Freigeschaltete Klassen-Stufen (Karrieretafel).
+
+    - Stufe 1 ist immer freigeschaltet (Start in beliebiger Klasse
+      gemaess Vorgabe: nur die Folge-Meisterschaften sind gebunden).
+    - Freigeschaltet sind zudem: Stufe der aktuellen Klasse, die
+      Stufen jeder beendeten Meisterschaft (bei Bewertung >= 45 %
+      zusaetzlich die naechsthoehere Stufe), Stufen angenommener
+      Angebote sowie angenommener Einladungen.
+    """
+    m = merged_tiers(tiers)
+
+    def t(cls):
+        return m.get((cls or "").strip(), DEFAULT_TIER)
+
+    out = {1}
+    if state.get("current_class"):
+        out.add(t(state["current_class"]))
+    for c in state.get("championships") or []:
+        ct = c.get("tier") or t(c.get("vehicle_class"))
+        out.add(ct)
+        if (c.get("rating") or 0) >= PROMOTION_RATIO:
+            out.add(min(ct + 1, MAX_TIER))
+    for c in state.get("championships") or []:
+        for o in c.get("offers") or []:
+            if o.get("status") == "angenommen":
+                out.add(t(o.get("class")))
+    for inv in state.get("invitations") or []:
+        out.add(t(inv.get("class")))
+    return out
+
+
+def tier_ranges(tiers):
+    """Menge von Stufen als Text, z. B. '1-3, 5'."""
+    nums = sorted(set(int(t) for t in tiers))
+    parts = []
+    start = prev = None
+    for n in nums:
+        if start is None:
+            start = prev = n
+            continue
+        if n == prev + 1:
+            prev = n
+        else:
+            parts.append(str(start) if start == prev
+                         else "%d-%d" % (start, prev))
+            start = prev = n
+    if start is not None:
+        parts.append(str(start) if start == prev
+                     else "%d-%d" % (start, prev))
+    return ", ".join(parts)
+
+
+# ---------------------------------------------------- Einladungs-Events --
+
+def invitations(state, races, tiers=None):
+    """Einladungs-Events (Vorbild Project CARS 2): gute Testrennen in
+    fuer die Karriere nicht verfuegbaren Klassen erzeugen eine Einladung
+    als Testfahrer - unabhaengig vom Meisterschaftsende.
+
+    Rueckgabe: Liste dicts {class, tier, team, avg_position, races}.
+    """
+    out = []
+    active = active_championship(state)
+    active_cls = active["vehicle_class"] if active else ""
+    current = (state.get("current_class") or "").strip()
+    accepted = {inv.get("class") for inv in state.get("invitations") or []}
+    for cls, rep in sorted(test_reports(state, races).items()):
+        if not cls or cls == active_cls or cls == current \
+                or cls in accepted:
+            continue
+        if rep["races"] >= 1 and rep["avg_position"] <= TEST_AVG_POS:
+            strength = 4 if rep["avg_position"] <= 1.5 else 3
+            out.append({
+                "class": cls,
+                "tier": tier_of(cls, tiers),
+                "team": team_for_tier(tier_of(cls, tiers), strength),
+                "strength": strength,
+                "avg_position": rep["avg_position"],
+                "races": rep["races"],
+            })
+    return out
+
+
+def accept_invitation(state, vehicle_class, races, tiers=None):
+    """Nimmt eine Einladung an: neuer Kontrakt in dieser Klasse."""
+    cls = (vehicle_class or "").strip()
+    for inv in invitations(state, races, tiers):
+        if inv["class"] == cls:
+            record = {"class": cls, "team": inv["team"],
+                      "strength": inv["strength"]}
+            state.setdefault("invitations", []).append(record)
+            state["current_class"] = cls
+            state["current_team"] = inv["team"]
+            return record
+    raise CareerModeError("Keine gueltige Einladung fuer %s." % cls)
 
 
 # ------------------------------------------------------- Meisterschaft --
@@ -193,6 +297,14 @@ def start_championship(state, name, vehicle_class,
     cls = (vehicle_class or "").strip()
     if not cls:
         raise CareerModeError("Bitte eine Fahrzeugklasse waehlen.")
+    if state["championships"]:
+        t = tier_of(cls, tiers)
+        unlocked = unlocked_tiers(state, tiers)
+        if t not in unlocked:
+            raise CareerModeError(
+                "Klassen-Stufe %d ist noch nicht freigeschaltet"
+                " (frei: %s). Aufstieg ueber Angebote, Einladungen"
+                " oder eine starke Saison." % (t, tier_ranges(unlocked)))
     champ = {
         "id": state["next_id"],
         "name": (name or "").strip() or "Meisterschaft %d" % state["next_id"],

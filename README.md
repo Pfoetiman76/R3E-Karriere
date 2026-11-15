@@ -38,6 +38,18 @@ Vertragsangeboten, XP-Level und Erfolgen.
   Meisterschaft zugeordnet sind, zählen als Testrennen. Ein
   Durchschnittsplatz von 3 oder besser erzeugt ein zusätzliches
   Angebot dieser Klasse.
+- **Karrieretafel (Vorbild Project CARS 2):** Der Karriere-Reiter zeigt
+  den Rang (Level, Emblem, Titel, Erfolge) und die freigeschalteten
+  Klassen-Stufen. Die erste Meisterschaft ist frei waehlbar; danach
+  sind hoehere Stufen erst nach Aufstiegs-Angebot, Einladung oder
+  starker Saison (Bewertung >= 45 %) verfuegbar.
+- **Einladungs-Events:** Gute Testrennen (Durchschnittsplatz <= 3) in
+  fremden Klassen erzeugen jederzeit eine Testfahrer-Einladung mit
+  Kontrakt - analog den Einladungs-Events in Project CARS 2.
+- **Automatisches Update:** Beim Start wird im Hintergrund das
+  neueste GitHub-Release geprueft; bei einer neueren Version
+  informiert die App und kann den Installer direkt herunterladen
+  und starten (Werkzeuge → Nach Update suchen ...).
 - **Karriere-Startdatum:** Unter *Werkzeuge →
   Karriere-Startdatum festlegen ...* laesst sich ein Datum (JJJJ-MM-TT)
   hinterlegen; ab dann zaehlen nur noch Rennen ab diesem Tag fuer
@@ -96,7 +108,7 @@ hervorgehoben.
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 37 Unit-Tests
+python -m unittest discover -s tests   # 45 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 

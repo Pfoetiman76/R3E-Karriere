@@ -17,7 +17,8 @@ from PySide6.QtCore import Qt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from karriere import appsettings, careerstate, core, paths, theme
+from karriere import appsettings, careerstate, core, paths, theme, \
+    updatecheck
 from karriere.widgets import (KpiCard, TrendChart, level_emblem,
                                offer_emblem, ACH_OPEN, ACH_UNLOCKED,
                                TIER_EMBLEM)
@@ -36,6 +37,7 @@ class MainWindow(QMainWindow):
         self.resize(1100, 720)
         self._build_menu()
         self._build_ui()
+        QTimer.singleShot(1500, lambda: self.check_updates(True))
         self.reload()
 
     # ------------------------------------------------------------ Aufbau --
@@ -55,6 +57,9 @@ class MainWindow(QMainWindow):
         act_start.triggered.connect(self.set_career_start)
         m.addAction(act_start)
         m.addSeparator()
+        act_update = QAction("&Nach Update suchen ...", self)
+        act_update.triggered.connect(lambda: self.check_updates(False))
+        m.addAction(act_update)
         act_reload = QAction("&Aktualisieren", self)
         act_reload.setShortcut("F5")
         act_reload.triggered.connect(self.reload)
@@ -158,6 +163,12 @@ class MainWindow(QMainWindow):
     def _build_career_tab(self):
         w = QWidget()
         v = QVBoxLayout(w)
+        self.lbl_rank = QLabel("")
+        self.lbl_rank.setObjectName("sectionTitle")
+        v.addWidget(self.lbl_rank)
+        self.lbl_unlocked = QLabel("")
+        self.lbl_unlocked.setObjectName("hint")
+        v.addWidget(self.lbl_unlocked)
         self.lbl_contract = QLabel("")
         self.lbl_contract.setObjectName("brandTitle")
         v.addWidget(self.lbl_contract)
@@ -186,6 +197,26 @@ class MainWindow(QMainWindow):
         self.champ_bar.setFormat("Meisterschaft: %v / %m Rennen")
         self.champ_bar.setFixedHeight(16)
         v.addWidget(self.champ_bar)
+
+        lbl_inv = QLabel("Einladungs-Events (gute Testrennen"
+                         " in fremden Klassen)")
+        lbl_inv.setObjectName("sectionTitle")
+        v.addWidget(lbl_inv)
+        inv_row = QHBoxLayout()
+        self.tbl_invites = QTableWidget(0, 4)
+        self.tbl_invites.setHorizontalHeaderLabels(
+            ["Klasse", "Stufe", "Team", "Pos. im Schnitt"])
+        self.tbl_invites.horizontalHeader().setStretchLastSection(True)
+        self.tbl_invites.setSelectionBehavior(QTableWidget.SelectRows)
+        self.tbl_invites.setMaximumHeight(140)
+        inv_row.addWidget(self.tbl_invites, 1)
+        inv_btns = QVBoxLayout()
+        self.btn_accept_inv = QPushButton("Einladung annehmen")
+        self.btn_accept_inv.clicked.connect(self.accept_invitation)
+        inv_btns.addWidget(self.btn_accept_inv)
+        inv_btns.addStretch(1)
+        inv_row.addLayout(inv_btns)
+        v.addLayout(inv_row)
 
         lbl_offers = QLabel("Angebote")
         lbl_offers.setObjectName("sectionTitle")
@@ -232,6 +263,20 @@ class MainWindow(QMainWindow):
                 " erst nach der festgelegten Rennanzahl abgeschlossen.")
             return
         classes = self._career_classes()
+        if self.state.get("championships"):
+            unlocked = careerstate.unlocked_tiers(
+                self.state, self.settings.get("class_tiers"))
+            classes = [c for c in classes
+                       if careerstate.tier_of(
+                           c, self.settings.get("class_tiers"))
+                       in unlocked]
+            if not classes:
+                QMessageBox.information(
+                    self, "Meisterschaft",
+                    "Keine freigeschaltete Klasse verfuegbar. Aufstieg"
+                    " ueber Angebote, Einladungen oder eine starke"
+                    " Saison.")
+                return
         if not classes:
             QMessageBox.information(
                 self, "Meisterschaft",
@@ -279,6 +324,87 @@ class MainWindow(QMainWindow):
             func(self.state, offer_id)
         except careerstate.CareerModeError as exc:
             QMessageBox.warning(self, "Angebote", str(exc))
+            return
+        careerstate.save_state(self._state_path, self.state)
+        self.reload()
+
+    def check_updates(self, silent=True):
+        """Prueft das neueste GitHub-Release gegen APP_VERSION."""
+        info = updatecheck.fetch_latest()
+        if info is None:
+            if not silent:
+                QMessageBox.information(
+                    self, "Update",
+                    "Der Update-Server ist derzeit nicht erreichbar.")
+            return
+        if not updatecheck.is_newer(info["tag"], APP_VERSION):
+            if not silent:
+                QMessageBox.information(
+                    self, "Update",
+                    "R3E Karriere ist auf dem neuesten Stand (%s)."
+                    % APP_VERSION)
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle("Update verfuegbar")
+        box.setIcon(QMessageBox.Information)
+        box.setText("Version %s ist verfuegbar (installiert: %s)."
+                    % (info["tag"].lstrip("vV"), APP_VERSION))
+        if info["exe_url"]:
+            btn_dl = box.addButton("Installer herunterladen",
+                                   QMessageBox.AcceptRole)
+        btn_web = box.addButton("Release-Seite oeffnen",
+                                QMessageBox.ActionRole)
+        box.addButton("Spaeter", QMessageBox.RejectRole)
+        box.exec()
+        clicked = box.clickedButton()
+        if info["exe_url"] and clicked is btn_dl:
+            self._download_update(info["exe_url"])
+        elif clicked is btn_web:
+            QDesktopServices.openUrl(QUrl(info["url"] or
+                                          "https://github.com/Pfoetiman76"
+                                          "/R3E-Karriere/releases"))
+
+    def _download_update(self, url):
+        """Laedt den Setup-Installer in den Downloads-Ordner."""
+        import urllib.request
+        try:
+            os.makedirs(os.path.join(os.path.expanduser("~"),
+                                     "Downloads"), exist_ok=True)
+            target = os.path.join(
+                os.path.expanduser("~"), "Downloads",
+                os.path.basename(url))
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            urllib.request.urlretrieve(url, target)
+            QApplication.restoreOverrideCursor()
+            ret = QMessageBox.question(
+                self, "Update",
+                "Installer gespeichert:\n%s\n\nJetzt starten?"
+                % target)
+            if ret == QMessageBox.Yes and os.name == "nt":
+                os.startfile(target)  # noqa: Windows: Installer starten
+        except Exception as exc:
+            QApplication.restoreOverrideCursor()
+            QMessageBox.warning(self, "Update",
+                                "Download fehlgeschlagen: %s" % exc)
+
+    def accept_invitation(self):
+        if self.career is None:
+            return
+        row = self.tbl_invites.currentRow()
+        if row < 0:
+            QMessageBox.information(
+                self, "Einladungen",
+                "Bitte zunaechst eine Einladung auswaehlen.")
+            return
+        cls = self.tbl_invites.item(row, 0).text()
+        career_races = careerstate.filter_races_from(
+            self.career.races(), self.settings.get("career_start"))
+        try:
+            careerstate.accept_invitation(
+                self.state, cls, career_races,
+                self.settings.get("class_tiers"))
+        except careerstate.CareerModeError as exc:
+            QMessageBox.warning(self, "Einladungen", str(exc))
             return
         careerstate.save_state(self._state_path, self.state)
         self.reload()
@@ -353,6 +479,22 @@ class MainWindow(QMainWindow):
 
     def _fill_career(self):
         state = self.state
+        if self.career is not None:
+            lv = self.career.level()
+            unlocked_count = sum(
+                1 for a in self.career.achievements() if a["unlocked"])
+            total_count = len(self.career.achievements())
+            self.lbl_rank.setText(
+                "Karrieretafel - Rang: Level %d %s (%s) | Erfolge:"
+                " %d / %d" % (
+                    lv, level_emblem(lv), core.level_title(lv),
+                    unlocked_count, total_count))
+        else:
+            self.lbl_rank.setText("Karrieretafel")
+        tiers_cfg = self.settings.get("class_tiers")
+        self.lbl_unlocked.setText(
+            "Freigeschaltete Klassen-Stufen: %s" % careerstate.tier_ranges(
+                careerstate.unlocked_tiers(state, tiers_cfg)))
         cls = state.get("current_class") or ""
         team = state.get("current_team") or ""
         self.lbl_contract.setText(
@@ -395,6 +537,25 @@ class MainWindow(QMainWindow):
             else:
                 self.lbl_champ.setText(
                     "Noch keine Meisterschaft angelegt.")
+
+        if self.career is not None:
+            career_races = careerstate.filter_races_from(
+                self.career.races(), self.settings.get("career_start"))
+            invs = careerstate.invitations(
+                state, career_races,
+                self.settings.get("class_tiers"))
+        else:
+            invs = []
+        ti = self.tbl_invites
+        ti.setRowCount(len(invs))
+        ti.setEditTriggers(QTableWidget.NoEditTriggers)
+        for i, inv in enumerate(invs):
+            vals = [inv["class"], "Stufe %d" % inv["tier"],
+                    inv["team"], "%.1f" % inv["avg_position"]]
+            for c, val in enumerate(vals):
+                item = QTableWidgetItem(val)
+                item.setTextAlignment(Qt.AlignCenter)
+                ti.setItem(i, c, item)
 
         offers = careerstate.open_offers(state)
         t = self.tbl_offers
