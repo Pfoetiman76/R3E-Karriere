@@ -292,5 +292,28 @@ class CareerStateTest(unittest.TestCase):
         self.assertEqual(self.state["championships"][-1]["id"], champ2["id"])
 
 
+class ResetStateTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.path = os.path.join(self.tmp.name, "karriere.json")
+        state = new_state()
+        start_championship(state, "S1", "GT3", 4)
+        state["current_class"] = "GT3"
+        state["current_team"] = "Nordloop Racing"
+        save_state(self.path, state)
+        assert load_state(self.path)["championships"]
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_reset_state(self):
+        fresh = careerstate.reset_state(self.path)
+        loaded = load_state(self.path)
+        self.assertEqual(loaded, new_state())
+        self.assertEqual(fresh, loaded)
+        self.assertEqual(loaded["championships"], [])
+        self.assertEqual(loaded["current_class"], "")
+
+
 if __name__ == "__main__":
     unittest.main()

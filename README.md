@@ -76,6 +76,10 @@ schnellste Rennrunde unter den Top 10. Die Punktetabelle umfasst das
 komplette Fahrerfeld (inklusive KI-Gegner); der eigene Fahrer ist farbig
 hervorgehoben.
 
+- **Karriere zuruecksetzen:** Werkzeuge > Karriere zuruecksetzen ...
+  beendet die laufende Karriere und legt einen frischen Zustand an
+  (Karrieretafel, Kontrakte und Freischaltungen werden geloescht; die
+  Ergebnis-Datenbank bleibt unberuehrt).
 - **App-Icon:** Eigenes Icon (dunkles Karriere-Quadrat, diagonales
   RaceRoom-rotes Band, weisses K; erzeugt mit `python tools/gen_icon.py`).
   PyInstaller bettet es in die EXE und das Fenster ein, Inno Setup in den
@@ -117,7 +121,7 @@ hervorgehoben.
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 44 Unit-Tests
+python -m unittest discover -s tests   # 45 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 

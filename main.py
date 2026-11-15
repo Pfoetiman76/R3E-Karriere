@@ -57,6 +57,9 @@ class MainWindow(QMainWindow):
         act_start = QAction("&Karriere-Startdatum festlegen ...", self)
         act_start.triggered.connect(self.set_career_start)
         m.addAction(act_start)
+        act_reset = QAction("Karriere &zuruecksetzen ...", self)
+        act_reset.triggered.connect(self.reset_career)
+        m.addAction(act_reset)
         m.addSeparator()
         act_update = QAction("&Nach Update suchen ...", self)
         act_update.triggered.connect(lambda: self.check_updates(False))
@@ -440,6 +443,36 @@ class MainWindow(QMainWindow):
             appsettings.settings_path(self.app_dir), self.settings)
         self.reload()
 
+    def reset_career(self):
+        """Karriere beenden und von null anfangen.
+
+        Loescht den Karriere-Zustand (karriere.json): Meisterschaften,
+        Kontrakte, Angebote, Einladungen und Freischaltungen. Punkte,
+        XP und Erfolge werden aus der unveraenderten Ergebnis-Datenbank
+        bei der naechsten Aktualisierung neu aufgebaut."""
+        ret = QMessageBox.question(
+            self, "Karriere zuruecksetzen",
+            "Moechten Sie die aktuelle Karriere wirklich beenden und"
+            " von null anfangen?\n\n"
+            "Alle Meisterschaften, Kontrakte, Angebote, Einladungen"
+            " und Freischaltungen werden geloescht.\n\n"
+            "Die Renndaten in der Ergebnis-Datenbank von R3E Resultate"
+            " bleiben unveraendert; Punkte, XP und Erfolge werden"
+            " daraus neu aufgebaut.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if ret != QMessageBox.Yes:
+            return
+        try:
+            self.state = careerstate.reset_state(self._state_path)
+        except OSError as exc:
+            QMessageBox.critical(
+                self, "Karriere zuruecksetzen",
+                "Die Karriere-Datei konnte nicht geschrieben werden:\n"
+                "%s" % exc)
+            return
+        self.statusBar().showMessage("Karriere zurueckgesetzt")
+        self.reload()
+
     def edit_class_tiers(self):
         """Einfacher Dialog: Klasse -> Stufe (1 = langsamste, 6 = schnellste)."""
         merged = careerstate.merged_tiers(self.settings.get("class_tiers"))
@@ -676,6 +709,9 @@ class MainWindow(QMainWindow):
             self.lbl_contract.setText("Keine Karriere-Daten")
             self.lbl_tier.setText("")
             self.lbl_champ.setText("")
+            self.career_header.set_info("Karrieretafel",
+                                        "Keine Karriere-Daten")
+            self.tier_ladder.clear()
             self.statusBar().showMessage("Keine Ergebnis-Datenbank gefunden")
             return
         # Karriere-Modus: nur Rennen ab dem Startdatum zaehlen

@@ -137,6 +137,18 @@ def new_state():
     }
 
 
+def reset_state(path):
+    """Setzt die Karriere zurueck: schreibt einen frischen Zustand.
+
+    Loescht damit alle Meisterschaften, Kontrakte, Angebote,
+    Einladungen und Freischaltungen. Die Ergebnis-Datenbank von
+    R3E Resultate bleibt unberuehrt; die Karriere wird daraus
+    bei der naechsten Aktualisierung neu aufgebaut."""
+    state = new_state()
+    save_state(path, state)
+    return state
+
+
 def load_state(path):
     """Liest karriere.json; korrupte Datei => frischer Zustand."""
     data = {}
