@@ -12,8 +12,8 @@ from PySide6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem, QProgressBar, QFileDialog,
     QMessageBox, QInputDialog, QPushButton, QDialog, QComboBox, QSpinBox,
     QFormLayout, QDialogButtonBox, QLineEdit)
-from PySide6.QtGui import QAction, QColor, QFont
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QFont
+from PySide6.QtCore import Qt, QTimer, QUrl
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
