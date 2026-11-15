@@ -330,6 +330,24 @@ class Career:
             "tracks": len({r.track_full for r in races}),
         }
 
+    # ------------------------------------------------------------ Verlauf --
+
+    def progression(self):
+        """Kumulativer Verlauf ueber alle Rennen (fuer Diagramme).
+
+        Rueckgabe: Liste dicts mit ts, races (1-basiert), points, xp -
+        jeweils kumuliert; passt zur Rennhistorie in chronologischer
+        Reihenfolge.
+        """
+        out = []
+        pts = xp = 0
+        for i, r in enumerate(self.races(), 1):
+            pts += r.points
+            xp += r.xp
+            out.append({"ts": r.timestamp, "races": i,
+                        "points": pts, "xp": xp})
+        return out
+
     # ------------------------------------------------------------- Erfolge --
 
     def achievements(self):

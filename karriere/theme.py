@@ -62,6 +62,10 @@ QTableView::item, QTableWidget::item { padding: 4px 10px; border: 0; }
 QTableView::item:hover, QTableWidget::item:hover { background: @HOVER@; }
 QTableView::item:selected, QTableWidget::item:selected { background: @SEL@; color: @TEXT@; }
 QHeaderView::section { background: @HEAD@; color: @TEXT@; padding: 6px 10px; border: none; border-right: 1px solid @LINE@; border-bottom: 1px solid @LINE@; font-size: 11.5px; font-weight: 700; }
+QFrame#kpiCard { background: @CARD@; border: 1px solid @LINE@; border-radius: 3px; }
+QLabel#kpiValue { font-size: 26px; font-weight: 800; background: transparent; }
+QLabel#kpiCaption { color: @MUTED@; font-size: 11px; font-weight: 700; background: transparent; }
+QWidget#chartCard { background: @CARD@; border: 1px solid @LINE@; border-radius: 3px; }
 QScrollBar:vertical { background: transparent; width: 9px; margin: 2px; }
 QScrollBar::handle:vertical { background: @SCROLL@; border-radius: 2px; min-height: 30px; }
 QScrollBar::handle:vertical:hover { background: @ACC@; }

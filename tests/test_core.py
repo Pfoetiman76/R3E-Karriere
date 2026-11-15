@@ -242,9 +242,26 @@ class CareerEngineTest(unittest.TestCase):
         with self.assertRaises(CareerError):
             c.races()
 
+    def test_progression_cumulative(self):
+        add_session(self.conn, 1, entries=[
+            sp_field(pos=1), ai("Alex Bachoura", 2)])
+        add_session(self.conn, 2, entries=[
+            sp_field(pos=2), ai("Alex Bachoura", 1)])
+        c = self.career()
+        prog = c.progression()
+        self.assertEqual(len(prog), c.stats()["races"])
+        self.assertEqual([row["races"] for row in prog],
+                         list(range(1, len(prog) + 1)))
+        # Punkte und XP steigen kumulativ und enden mit den Summen
+        self.assertEqual(prog[-1]["points"], c.stats()["points"])
+        self.assertEqual(prog[-1]["xp"], c.stats()["xp"])
+        for a, b in zip(prog, prog[1:]):
+            self.assertGreaterEqual(b["points"], a["points"])
+            self.assertGreaterEqual(b["xp"], a["xp"])
+
     def test_version(self):
         from karriere.models import APP_VERSION
-        self.assertEqual(APP_VERSION, "0.2.1")
+        self.assertEqual(APP_VERSION, "0.3.0")
 
 
 if __name__ == "__main__":

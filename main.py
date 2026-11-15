@@ -18,6 +18,9 @@ from PySide6.QtCore import Qt
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from karriere import appsettings, careerstate, core, paths, theme
+from karriere.widgets import (KpiCard, TrendChart, level_emblem,
+                               offer_emblem, ACH_OPEN, ACH_UNLOCKED,
+                               TIER_EMBLEM)
 from karriere.models import APP_NAME, APP_VERSION, format_time_ms
 from karriere.core import CareerError, XP_PER_LEVEL, level_title
 
@@ -81,10 +84,33 @@ class MainWindow(QMainWindow):
         v.addWidget(self.lbl_sub)
         self.xp_bar = QProgressBar()
         self.xp_bar.setFormat("XP %v / %m zum naechsten Level")
+        self.xp_bar.setFixedHeight(16)
         v.addWidget(self.xp_bar)
 
-        self.tbl_tiles = QTableWidget(0, 0)
-        v.addWidget(self.tbl_tiles, 2)
+        # KPI-Kartenreihe (Dashboard-Kennzahlen)
+        self.kpi_cards = {}
+        kpis = [("level", "Level", "#e8212b"),
+                ("races", "Rennen", "#e8e8ec"),
+                ("wins", "Siege", "#e8c34a"),
+                ("podiums", "Podien", "#e8c34a"),
+                ("poles", "Pole", "#9a9aa4"),
+                ("fastest", "Schnellste Runden", "#9a9aa4"),
+                ("ach", "Erfolge", "#e8c34a")]
+        kpi_row = QHBoxLayout()
+        kpi_row.setSpacing(8)
+        for key, caption, color in kpis:
+            card = KpiCard(caption, color=color)
+            card.setMinimumWidth(120)
+            self.kpi_cards[key] = card
+            kpi_row.addWidget(card)
+        kpi_row.addStretch(1)
+        v.addLayout(kpi_row)
+
+        lbl_chart = QLabel("Karriere-Verlauf (kumulierte Punkte und XP)")
+        lbl_chart.setObjectName("sectionTitle")
+        v.addWidget(lbl_chart)
+        self.chart = TrendChart()
+        v.addWidget(self.chart, 2)
 
         self.lbl_history = QLabel("Rennhistorie")
         self.lbl_history.setObjectName("sectionTitle")
@@ -156,6 +182,10 @@ class MainWindow(QMainWindow):
         self.lbl_champ = QLabel("")
         self.lbl_champ.setWordWrap(True)
         v.addWidget(self.lbl_champ)
+        self.champ_bar = QProgressBar()
+        self.champ_bar.setFormat("Meisterschaft: %v / %m Rennen")
+        self.champ_bar.setFixedHeight(16)
+        v.addWidget(self.champ_bar)
 
         lbl_offers = QLabel("Angebote")
         lbl_offers.setObjectName("sectionTitle")
@@ -331,10 +361,11 @@ class MainWindow(QMainWindow):
         start = self.settings.get("career_start") or ""
         start_info = (" | Rennen ab %s" % start) if start else ""
         if cls:
+            tier = careerstate.tier_of(
+                cls, self.settings.get("class_tiers"))
             self.lbl_tier.setText(
-                "Klassen-Stufe: %d%s" % (
-                    careerstate.tier_of(cls, self.settings.get("class_tiers")),
-                    start_info))
+                "%s  Klassen-Stufe: %d%s" % (TIER_EMBLEM, tier,
+                                             start_info))
         else:
             self.lbl_tier.setText(
                 "Noch kein Kontrakt - bitte eine Meisterschaft"
@@ -347,7 +378,11 @@ class MainWindow(QMainWindow):
                 " zugeordnet" % (
                     champ["name"], champ["vehicle_class"], champ["tier"],
                     len(champ["session_ids"]), champ["planned_races"]))
+            self.champ_bar.setRange(0, champ["planned_races"])
+            self.champ_bar.setValue(len(champ["session_ids"]))
         else:
+            self.champ_bar.setRange(0, 1)
+            self.champ_bar.setValue(0)
             last = careerstate.last_championship(state)
             if last:
                 pos = last.get("position")
@@ -366,7 +401,8 @@ class MainWindow(QMainWindow):
         t.setRowCount(len(offers))
         t.setEditTriggers(QTableWidget.NoEditTriggers)
         for i, o in enumerate(offers):
-            vals = [o["type"], o["class"], o["team"],
+            vals = ["%s  %s" % (offer_emblem(o["type"]), o["type"]),
+                    o["class"], o["team"],
                     careerstate.strength_label(o["strength"]),
                     "Offen"]
             for c, val in enumerate(vals):
@@ -437,7 +473,11 @@ class MainWindow(QMainWindow):
             self.lbl_sub.setText(str(exc).replace("\n", " "))
             self.xp_bar.setRange(0, 1)
             self.xp_bar.setValue(0)
-            self.tbl_tiles.setRowCount(0)
+            for card in self.kpi_cards.values():
+                card.set_value("-")
+            self.chart.set_series([])
+            self.champ_bar.setRange(0, 1)
+            self.champ_bar.setValue(0)
             self.tbl_races.setRowCount(0)
             self.tbl_standings.setRowCount(0)
             self.tbl_ach.setRowCount(0)
@@ -474,7 +514,7 @@ class MainWindow(QMainWindow):
                 stats["poles"], stats["points"]))
         self.xp_bar.setRange(0, XP_PER_LEVEL)
         self.xp_bar.setValue(career.xp_into_level())
-        self._fill_tiles(stats)
+        self._fill_dashboard(career, stats)
         self._fill_races(career)
         self._fill_standings(career)
         self._fill_achievements(career)
@@ -483,31 +523,26 @@ class MainWindow(QMainWindow):
 
     # ---------------------------------------------------------- Fuellung --
 
-    def _fill_tiles(self, s):
-        tiles = [("Rennen", s["races"]), ("Siege", s["wins"]),
-                 ("Podien", s["podiums"]), ("Pole", s["poles"]),
-                 ("Schnellste Runden", s["fastest_laps"]),
-                 ("Punkte gesamt", s["points"]), ("Ziele", s["finishes"]),
-                 ("Ausfaelle", s["dnfs"]), ("Strecken", s["tracks"]),
-                 ("Fahrzeuge", s["vehicles"]), ("XP gesamt", s["xp"]),
-                 ("Level", s["level"])]
-        cols, rows = 4, (len(tiles) + 3) // 4
-        t = self.tbl_tiles
-        t.setRowCount(rows)
-        t.setColumnCount(cols)
-        t.verticalHeader().setVisible(False)
-        t.horizontalHeader().setVisible(False)
-        t.setEditTriggers(QTableWidget.NoEditTriggers)
-        t.setSelectionMode(QTableWidget.NoSelection)
-        t.horizontalHeader().setStretchLastSection(True)
-        for i, (label, value) in enumerate(tiles):
-            r, c = divmod(i, cols)
-            item = QTableWidgetItem("%s\n%s" % (label, value))
-            item.setTextAlignment(Qt.AlignCenter)
-            font = QFont()
-            font.setBold(True)
-            item.setFont(font)
-            t.setItem(r, c, item)
+    def _fill_dashboard(self, career, s):
+        """KPI-Karten und Verlaufs-Diagramm des Dashboards fuellen."""
+        unlocked = sum(1 for a in career.achievements() if a["unlocked"])
+        total = len(career.achievements())
+        self.kpi_cards["level"].set_value(s["level"],
+                                          level_emblem(s["level"]))
+        self.kpi_cards["level"].set_caption(
+            core.level_title(s["level"]))
+        self.kpi_cards["races"].set_value(s["races"])
+        self.kpi_cards["wins"].set_value(s["wins"])
+        self.kpi_cards["podiums"].set_value(s["podiums"])
+        self.kpi_cards["poles"].set_value(s["poles"])
+        self.kpi_cards["fastest"].set_value(s["fastest_laps"])
+        self.kpi_cards["ach"].set_value("%d / %d" % (unlocked, total))
+        prog = career.progression()
+        points = [row["points"] for row in prog]
+        xp = [row["xp"] for row in prog]
+        self.chart.set_series(
+            [("Punkte", "#e8212b", points), ("XP", "#e8c34a", xp)],
+            x_label="Rennen")
 
     def _fill_races(self, career):
         races = list(reversed(career.races()))
@@ -542,6 +577,9 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(v)
                 item.setTextAlignment(
                     Qt.AlignCenter if c != 1 else Qt.AlignLeft)
+                if c == 0 and i < 3:
+                    medal = ["#e8c34a", "#c8c8d0", "#b07a4a"][i]
+                    item.setForeground(QColor(medal))
                 if a["is_player"]:
                     font = QFont()
                     font.setBold(True)
@@ -555,7 +593,8 @@ class MainWindow(QMainWindow):
         t.setRowCount(len(rows))
         t.setEditTriggers(QTableWidget.NoEditTriggers)
         for i, a in enumerate(rows):
-            vals = [a["title"], a["desc"],
+            vals = ["%s  %s" % (ACH_UNLOCKED if a["unlocked"] else ACH_OPEN,
+                                a["title"]), a["desc"],
                     "%d / %d" % (a["current"], a["goal"]),
                     "Freigeschaltet" if a["unlocked"] else "Offen",
                     a["unlocked"] or "-"]

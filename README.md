@@ -79,15 +79,24 @@ hervorgehoben.
 - Nach dem Start wird die Karriere sofort aufgebaut (F5 aktualisiert).
 - Tab **Karriere**: Kontrakt, aktive Meisterschaft mit Fortschritt,
   offene Angebote (Annehmen/Ablehnen) und die Testrennen-Statistik.
-- Tab **Übersicht**: Level, XP-Balken, Kacheln (Rennen, Siege, Podien,
+- Tab **Übersicht (Dashboard)**: Level-Karte mit Rang-Emblem und
+  Titel, KPI-Karten (Rennen, Siege, Podien, Pole, schnellste Runden,
+  Erfolge), Verlaufs-Diagramm der kumulierten Punkte und XP
+  (eigene QPainter-Chart, keine Zusatzabhängigkeit) und die
+  Rennhistorie.
+- Tab **Übersicht** (Kern): Level, XP-Balken, Kacheln (Rennen, Siege, Podien,
   Pole, Punkte ...) und die Rennhistorie.
-- Tab **Meisterschaft**: Punktetabelle aller Fahrer.
-- Tab **Erfolge**: alle Erfolge mit Fortschritt und Freischaltdatum.
+- Tab **Meisterschaft**: Punktetabelle aller Fahrer, Platz 1-3 in
+  Medaillenfarben (Gold/Silber/Bronze).
+- Tab **Erfolge**: alle Erfolge mit Fortschritt und Freischaltdatum,
+  freigeschaltete mit Stern-Emblem. Der Karriere-Reiter zeigt den
+  Meisterschafts-Fortschritt als Balken, Kontrakt und Angebote mit
+  Stufen- und Typ-Emblemen.
 
 ## Entwicklung
 
 ```bash
-python -m unittest discover -s tests   # 36 Unit-Tests
+python -m unittest discover -s tests   # 37 Unit-Tests
 python main.py                         # App starten (PySide6)
 ```
 
