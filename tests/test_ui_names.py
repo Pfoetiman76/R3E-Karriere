@@ -6,6 +6,8 @@
    (NameError wie '_section_label is not defined' beim Import von
    karriere/widgets.py verhindern; Module mit Qt-Import werden nicht
    ausgefuehrt, daher rein statisch per AST).
+3. Statische Methoden duerfen 'self' nicht referenzieren
+   (NameError wie 'self is not defined' in _style_table verhindern).
 """
 import ast
 import builtins
@@ -120,6 +122,37 @@ class ModuleLevelNamesTest(unittest.TestCase):
                     "%s: Name(s) %s auf Modulebene verwendet, bevor sie"
                     " definiert sind" % (os.path.basename(path), missing))
                 defined |= self._defs_of_toplevel(node)
+
+
+class StaticMethodSelfTest(unittest.TestCase):
+    """@staticmethod-Methoden haben kein 'self': jede Referenz darauf
+    wuerde in der paketierten App erst zur Laufzeit crashen
+    (NameError: name 'self' is not defined)."""
+
+    def test_static_methods_do_not_use_self(self):
+        files = [MAIN] + sorted(
+            glob.glob(os.path.join(ROOT, "karriere", "*.py")))
+        offenders = []
+        for path in files:
+            with open(path, "r", encoding="utf-8") as f:
+                tree = ast.parse(f.read())
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef,
+                                         ast.AsyncFunctionDef)):
+                    continue
+                is_static = any(
+                    isinstance(d, ast.Name) and d.id == "staticmethod"
+                    for d in node.decorator_list)
+                if not is_static:
+                    continue
+                for n in ast.walk(node):
+                    if (isinstance(n, ast.Name) and n.id == "self"):
+                        offenders.append("%s:%d (%s)" % (
+                            os.path.basename(path), n.lineno, node.name))
+        self.assertEqual(
+            offenders, [],
+            "self in statischen Methoden ist nicht definiert: %s"
+            % offenders)
 
 
 if __name__ == "__main__":

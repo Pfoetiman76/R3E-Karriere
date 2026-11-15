@@ -96,7 +96,6 @@ class MainWindow(QMainWindow):
         t.setSelectionBehavior(QAbstractItemView.SelectRows)
         t.setSelectionMode(QAbstractItemView.SingleSelection)
         t.verticalHeader().setVisible(False)
-        self.statusBar().showMessage("")
 
     def _build_overview_tab(self):
         w = QWidget()
